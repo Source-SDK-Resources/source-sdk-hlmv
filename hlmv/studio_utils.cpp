@@ -481,20 +481,20 @@ float StudioModel::GetTransitionAmount( void )
 	return 0.0f;
 }
 
-int StudioModel::LookupFlexController( char *szName )
+LocalFlexController_t StudioModel::LookupFlexController( char *szName )
 {
 	CStudioHdr *pStudioHdr = GetStudioHdr();
 	if (!pStudioHdr)
-		return false;
+		return (LocalFlexController_t)0;
 
-	for (int iFlex = 0; iFlex < pStudioHdr->numflexcontrollers(); iFlex++)
+	for (LocalFlexController_t iFlex = (LocalFlexController_t)0; iFlex < pStudioHdr->numflexcontrollers(); iFlex++)
 	{
 		if (stricmp( szName, pStudioHdr->pFlexcontroller( iFlex )->pszName() ) == 0)
 		{
 			return iFlex;
 		}
 	}
-	return -1;
+	return (LocalFlexController_t)-1;
 }
 
 
@@ -503,7 +503,7 @@ void StudioModel::SetFlexController( char *szName, float flValue )
 	SetFlexController( LookupFlexController( szName ), flValue );
 }
 
-void StudioModel::SetFlexController( int iFlex, float flValue )
+void StudioModel::SetFlexController( LocalFlexController_t iFlex, float flValue )
 {
 	CStudioHdr *pStudioHdr = GetStudioHdr();
 	if ( !pStudioHdr )
@@ -522,7 +522,7 @@ void StudioModel::SetFlexController( int iFlex, float flValue )
 }
 
 
-void StudioModel::SetFlexControllerRaw( int iFlex, float flValue )
+void StudioModel::SetFlexControllerRaw( LocalFlexController_t iFlex, float flValue )
 {
 	CStudioHdr *pStudioHdr = GetStudioHdr();
 	if ( !pStudioHdr )
@@ -540,7 +540,7 @@ float StudioModel::GetFlexController( char *szName )
 	return GetFlexController( LookupFlexController( szName ) );
 }
 
-float StudioModel::GetFlexController( int iFlex )
+float StudioModel::GetFlexController( LocalFlexController_t iFlex )
 {
 	CStudioHdr *pStudioHdr = GetStudioHdr();
 	if ( !pStudioHdr )
@@ -562,7 +562,7 @@ float StudioModel::GetFlexController( int iFlex )
 }
 
 
-float StudioModel::GetFlexControllerRaw( int iFlex )
+float StudioModel::GetFlexControllerRaw( LocalFlexController_t iFlex )
 {
 	CStudioHdr *pStudioHdr = GetStudioHdr();
 	if ( !pStudioHdr )
@@ -1129,7 +1129,9 @@ char *StudioModel::Physics_DumpQC( void )
 	return m_pPhysics->DumpQC();
 }
 
-const mstudio_modelvertexdata_t *mstudiomodel_t::GetVertexData()
+// Ozxy: This already has a body?
+#if 0
+const mstudio_modelvertexdata_t *mstudiomodel_t::GetVertexData(void* pModelData)
 {
 	Assert( g_pActiveModel );
 
@@ -1140,7 +1142,77 @@ const mstudio_modelvertexdata_t *mstudiomodel_t::GetVertexData()
 
 	return &vertexdata;
 }
+#endif
 
+const vertexFileHeader_t* mstudiomodel_t::CacheVertexData(void* pModelData)
+{
+	studiohdr_t* pActiveStudioHdr = static_cast<studiohdr_t*>(pModelData);
+	Assert(pActiveStudioHdr);
+
+	if (pActiveStudioHdr->pVertexBase)
+	{
+		return (vertexFileHeader_t*)pActiveStudioHdr->pVertexBase;
+	}
+
+	// mandatory callback to make requested data resident
+	// load and persist the vertex file
+	char fileName[MAX_PATH];
+	strcpy(fileName, "models/");
+	strcat(fileName, pActiveStudioHdr->pszName());
+	Q_StripExtension(fileName, fileName, sizeof(fileName));
+	strcat(fileName, ".vvd");
+
+	// load the model
+	FileHandle_t fileHandle = g_pFileSystem->Open(fileName, "rb");
+	if (!fileHandle)
+	{
+		Error("Unable to load vertex data \"%s\"\n", fileName);
+	}
+
+	// Get the file size
+	int vvdSize = g_pFileSystem->Size(fileHandle);
+	if (vvdSize == 0)
+	{
+		g_pFileSystem->Close(fileHandle);
+		Error("Bad size for vertex data \"%s\"\n", fileName);
+	}
+
+	vertexFileHeader_t* pVvdHdr = (vertexFileHeader_t*)malloc(vvdSize);
+	g_pFileSystem->Read(pVvdHdr, vvdSize, fileHandle);
+	g_pFileSystem->Close(fileHandle);
+
+	// check header
+	if (pVvdHdr->id != MODEL_VERTEX_FILE_ID)
+	{
+		Error("Error Vertex File %s id %d should be %d\n", fileName, pVvdHdr->id, MODEL_VERTEX_FILE_ID);
+	}
+	if (pVvdHdr->version != MODEL_VERTEX_FILE_VERSION)
+	{
+		Error("Error Vertex File %s version %d should be %d\n", fileName, pVvdHdr->version, MODEL_VERTEX_FILE_VERSION);
+	}
+	if (pVvdHdr->checksum != pActiveStudioHdr->checksum)
+	{
+		Error("Error Vertex File %s checksum %d should be %d\n", fileName, pVvdHdr->checksum, pActiveStudioHdr->checksum);
+	}
+
+	// need to perform mesh relocation fixups
+	// allocate a new copy
+	vertexFileHeader_t* pNewVvdHdr = (vertexFileHeader_t*)malloc(vvdSize);
+	if (!pNewVvdHdr)
+	{
+		Error("Error allocating %d bytes for Vertex File '%s'\n", vvdSize, fileName);
+	}
+
+	// load vertexes and run fixups
+	Studio_LoadVertexes(pVvdHdr, pNewVvdHdr, 0, true);
+
+	// discard original
+	free(pVvdHdr);
+	pVvdHdr = pNewVvdHdr;
+
+	pActiveStudioHdr->pVertexBase = (void*)pVvdHdr;
+	return pVvdHdr;
+}
 
 //-----------------------------------------------------------------------------
 // FIXME: This trashy glue code is really not acceptable. Figure out a way of making it unnecessary.

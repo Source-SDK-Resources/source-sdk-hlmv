@@ -12,6 +12,7 @@
 #include "viewersettings.h"
 
 extern IMaterialSystem *g_pMaterialSystem;
+extern matrix3x4_t* g_pBoneToWorld;
 
 #define NORMAL_LENGTH .5f
 #define NORMAL_OFFSET_FROM_MESH 0.1f
@@ -23,11 +24,11 @@ int DebugDrawModel( IStudioRender *pStudioRender, DrawModelInfo_t& info, const V
 	// TODO: make sure that this actually keeps us from reallocating inside of GetTriangles.
 	static GetTriangles_Output_t tris;
 
-	pStudioRender->GetTriangles( info, tris );
+	pStudioRender->GetTriangles( info, g_pBoneToWorld, tris );
 
-	g_pMaterialSystem->MatrixMode( MATERIAL_MODEL );
-	g_pMaterialSystem->PushMatrix();
-	g_pMaterialSystem->LoadIdentity();
+	g_pMaterialSystem->GetRenderContext()->MatrixMode( MATERIAL_MODEL );
+	g_pMaterialSystem->GetRenderContext()->PushMatrix();
+	g_pMaterialSystem->GetRenderContext()->LoadIdentity();
 
 	CMeshBuilder meshBuilder;
 
@@ -36,8 +37,8 @@ int DebugDrawModel( IStudioRender *pStudioRender, DrawModelInfo_t& info, const V
 	{
 		GetTriangles_MaterialBatch_t &materialBatch = tris.m_MaterialBatches[batchID];
 
-		g_pMaterialSystem->Bind( materialBatch.m_pMaterial );
-		IMesh *pBuildMesh = g_pMaterialSystem->GetDynamicMesh( false );
+		g_pMaterialSystem->GetRenderContext()->Bind( materialBatch.m_pMaterial );
+		IMesh *pBuildMesh = g_pMaterialSystem->GetRenderContext()->GetDynamicMesh( false );
 		meshBuilder.Begin( pBuildMesh, MATERIAL_TRIANGLES, materialBatch.m_Verts.Count(), 
 			materialBatch.m_TriListIndices.Count() );
 
@@ -55,7 +56,7 @@ int DebugDrawModel( IStudioRender *pStudioRender, DrawModelInfo_t& info, const V
 			int k;
 			for( k = 0; k < vert.m_NumBones; k++ )
 			{
-				const matrix3x4_t &poseToWorld = *pStudioRender->GetPoseToWorld( vert.m_BoneIndex[k] );
+				const matrix3x4_t &poseToWorld = tris.m_PoseToWorld[vert.m_BoneIndex[k]];
 				Vector tmp;
 				VectorTransform( pos, poseToWorld, tmp );
 				skinnedPos += vert.m_BoneWeight[k] * tmp;
@@ -82,8 +83,8 @@ int DebugDrawModel( IStudioRender *pStudioRender, DrawModelInfo_t& info, const V
 		meshBuilder.End();
 		pBuildMesh->Draw();
 	}
-	g_pMaterialSystem->MatrixMode( MATERIAL_MODEL );
-	g_pMaterialSystem->PopMatrix();
+	g_pMaterialSystem->GetRenderContext()->MatrixMode( MATERIAL_MODEL );
+	g_pMaterialSystem->GetRenderContext()->PopMatrix();
 
 	return 0;
 }
@@ -95,11 +96,11 @@ int DebugDrawModelNormals( IStudioRender *pStudioRender, DrawModelInfo_t& info, 
 	// TODO: make sure that this actually keeps us from reallocating inside of GetTriangles.
 	static GetTriangles_Output_t tris;
 
-	pStudioRender->GetTriangles( info, tris );
+	pStudioRender->GetTriangles( info, g_pBoneToWorld, tris );
 
-	g_pMaterialSystem->MatrixMode( MATERIAL_MODEL );
-	g_pMaterialSystem->PushMatrix();
-	g_pMaterialSystem->LoadIdentity();
+	g_pMaterialSystem->GetRenderContext()->MatrixMode( MATERIAL_MODEL );
+	g_pMaterialSystem->GetRenderContext()->PushMatrix();
+	g_pMaterialSystem->GetRenderContext()->LoadIdentity();
 
 	int batchID;
 	for( batchID = 0; batchID < tris.m_MaterialBatches.Count(); batchID++ )
@@ -107,8 +108,8 @@ int DebugDrawModelNormals( IStudioRender *pStudioRender, DrawModelInfo_t& info, 
 		GetTriangles_MaterialBatch_t &materialBatch = tris.m_MaterialBatches[batchID];
 
 		CMeshBuilder meshBuilder;
-		g_pMaterialSystem->Bind( g_materialVertexColor );
-		IMesh *pBuildMesh = g_pMaterialSystem->GetDynamicMesh();
+		g_pMaterialSystem->GetRenderContext()->Bind( g_materialVertexColor );
+		IMesh *pBuildMesh = g_pMaterialSystem->GetRenderContext()->GetDynamicMesh();
 		meshBuilder.Begin( pBuildMesh, MATERIAL_LINES, materialBatch.m_Verts.Count() );
 
 		int vertID;
@@ -123,7 +124,7 @@ int DebugDrawModelNormals( IStudioRender *pStudioRender, DrawModelInfo_t& info, 
 			int k;
 			for( k = 0; k < vert.m_NumBones; k++ )
 			{
-				const matrix3x4_t &poseToWorld = *pStudioRender->GetPoseToWorld( vert.m_BoneIndex[k] );
+				const matrix3x4_t &poseToWorld = tris.m_PoseToWorld[vert.m_BoneIndex[k]];
 				Vector tmp;
 				VectorTransform( pos, poseToWorld, tmp );
 				skinnedPos += vert.m_BoneWeight[k] * tmp;
@@ -145,8 +146,8 @@ int DebugDrawModelNormals( IStudioRender *pStudioRender, DrawModelInfo_t& info, 
 		meshBuilder.End();
 		pBuildMesh->Draw();
 	}
-	g_pMaterialSystem->MatrixMode( MATERIAL_MODEL );
-	g_pMaterialSystem->PopMatrix();
+	g_pMaterialSystem->GetRenderContext()->MatrixMode( MATERIAL_MODEL );
+	g_pMaterialSystem->GetRenderContext()->PopMatrix();
 
 	return 0;
 }
@@ -158,11 +159,11 @@ int DebugDrawModelTangentS( IStudioRender *pStudioRender, DrawModelInfo_t& info,
 	// TODO: make sure that this actually keeps us from reallocating inside of GetTriangles.
 	static GetTriangles_Output_t tris;
 
-	pStudioRender->GetTriangles( info, tris );
+	pStudioRender->GetTriangles( info, g_pBoneToWorld, tris );
 
-	g_pMaterialSystem->MatrixMode( MATERIAL_MODEL );
-	g_pMaterialSystem->PushMatrix();
-	g_pMaterialSystem->LoadIdentity();
+	g_pMaterialSystem->GetRenderContext()->MatrixMode( MATERIAL_MODEL );
+	g_pMaterialSystem->GetRenderContext()->PushMatrix();
+	g_pMaterialSystem->GetRenderContext()->LoadIdentity();
 
 	int batchID;
 	for( batchID = 0; batchID < tris.m_MaterialBatches.Count(); batchID++ )
@@ -170,8 +171,8 @@ int DebugDrawModelTangentS( IStudioRender *pStudioRender, DrawModelInfo_t& info,
 		GetTriangles_MaterialBatch_t &materialBatch = tris.m_MaterialBatches[batchID];
 
 		CMeshBuilder meshBuilder;
-		g_pMaterialSystem->Bind( g_materialVertexColor );
-		IMesh *pBuildMesh = g_pMaterialSystem->GetDynamicMesh();
+		g_pMaterialSystem->GetRenderContext()->Bind( g_materialVertexColor );
+		IMesh *pBuildMesh = g_pMaterialSystem->GetRenderContext()->GetDynamicMesh();
 		meshBuilder.Begin( pBuildMesh, MATERIAL_LINES, materialBatch.m_Verts.Count() );
 
 		int vertID;
@@ -188,7 +189,7 @@ int DebugDrawModelTangentS( IStudioRender *pStudioRender, DrawModelInfo_t& info,
 			int k;
 			for( k = 0; k < vert.m_NumBones; k++ )
 			{
-				const matrix3x4_t &poseToWorld = *pStudioRender->GetPoseToWorld( vert.m_BoneIndex[k] );
+				const matrix3x4_t &poseToWorld = tris.m_PoseToWorld[vert.m_BoneIndex[k]];
 				Vector tmp;
 				VectorTransform( pos, poseToWorld, tmp );
 				skinnedPos += vert.m_BoneWeight[k] * tmp;
@@ -212,8 +213,8 @@ int DebugDrawModelTangentS( IStudioRender *pStudioRender, DrawModelInfo_t& info,
 		meshBuilder.End();
 		pBuildMesh->Draw();
 	}
-	g_pMaterialSystem->MatrixMode( MATERIAL_MODEL );
-	g_pMaterialSystem->PopMatrix();
+	g_pMaterialSystem->GetRenderContext()->MatrixMode( MATERIAL_MODEL );
+	g_pMaterialSystem->GetRenderContext()->PopMatrix();
 
 	return 0;
 }
@@ -225,11 +226,11 @@ int DebugDrawModelTangentT( IStudioRender *pStudioRender, DrawModelInfo_t& info,
 	// TODO: make sure that this actually keeps us from reallocating inside of GetTriangles.
 	static GetTriangles_Output_t tris;
 
-	pStudioRender->GetTriangles( info, tris );
+	pStudioRender->GetTriangles( info, g_pBoneToWorld, tris );
 
-	g_pMaterialSystem->MatrixMode( MATERIAL_MODEL );
-	g_pMaterialSystem->PushMatrix();
-	g_pMaterialSystem->LoadIdentity();
+	g_pMaterialSystem->GetRenderContext()->MatrixMode( MATERIAL_MODEL );
+	g_pMaterialSystem->GetRenderContext()->PushMatrix();
+	g_pMaterialSystem->GetRenderContext()->LoadIdentity();
 
 	int batchID;
 	for( batchID = 0; batchID < tris.m_MaterialBatches.Count(); batchID++ )
@@ -237,8 +238,8 @@ int DebugDrawModelTangentT( IStudioRender *pStudioRender, DrawModelInfo_t& info,
 		GetTriangles_MaterialBatch_t &materialBatch = tris.m_MaterialBatches[batchID];
 
 		CMeshBuilder meshBuilder;
-		g_pMaterialSystem->Bind( g_materialVertexColor );
-		IMesh *pBuildMesh = g_pMaterialSystem->GetDynamicMesh();
+		g_pMaterialSystem->GetRenderContext()->Bind( g_materialVertexColor );
+		IMesh *pBuildMesh = g_pMaterialSystem->GetRenderContext()->GetDynamicMesh();
 		meshBuilder.Begin( pBuildMesh, MATERIAL_LINES, materialBatch.m_Verts.Count() );
 
 		int vertID;
@@ -255,7 +256,7 @@ int DebugDrawModelTangentT( IStudioRender *pStudioRender, DrawModelInfo_t& info,
 			int k;
 			for( k = 0; k < vert.m_NumBones; k++ )
 			{
-				const matrix3x4_t &poseToWorld = *pStudioRender->GetPoseToWorld( vert.m_BoneIndex[k] );
+				const matrix3x4_t &poseToWorld = tris.m_PoseToWorld[vert.m_BoneIndex[k]];
 				Vector tmp;
 				VectorTransform( pos, poseToWorld, tmp );
 				skinnedPos += vert.m_BoneWeight[k] * tmp;
@@ -281,8 +282,8 @@ int DebugDrawModelTangentT( IStudioRender *pStudioRender, DrawModelInfo_t& info,
 		meshBuilder.End();
 		pBuildMesh->Draw();
 	}
-	g_pMaterialSystem->MatrixMode( MATERIAL_MODEL );
-	g_pMaterialSystem->PopMatrix();
+	g_pMaterialSystem->GetRenderContext()->MatrixMode( MATERIAL_MODEL );
+	g_pMaterialSystem->GetRenderContext()->PopMatrix();
 
 	return 0;
 }
@@ -294,11 +295,11 @@ int DebugDrawModelBoneWeights( IStudioRender *pStudioRender, DrawModelInfo_t& in
 	// TODO: make sure that this actually keeps us from reallocating inside of GetTriangles.
 	static GetTriangles_Output_t tris;
 
-	pStudioRender->GetTriangles( info, tris );
+	pStudioRender->GetTriangles( info, g_pBoneToWorld, tris );
 
-	g_pMaterialSystem->MatrixMode( MATERIAL_MODEL );
-	g_pMaterialSystem->PushMatrix();
-	g_pMaterialSystem->LoadIdentity();
+	g_pMaterialSystem->GetRenderContext()->MatrixMode( MATERIAL_MODEL );
+	g_pMaterialSystem->GetRenderContext()->PushMatrix();
+	g_pMaterialSystem->GetRenderContext()->LoadIdentity();
 
 	CMeshBuilder meshBuilder;
 
@@ -307,8 +308,8 @@ int DebugDrawModelBoneWeights( IStudioRender *pStudioRender, DrawModelInfo_t& in
 	{
 		GetTriangles_MaterialBatch_t &materialBatch = tris.m_MaterialBatches[batchID];
 
-		g_pMaterialSystem->Bind( g_materialVertexColor );
-		IMesh *pBuildMesh = g_pMaterialSystem->GetDynamicMesh( false );
+		g_pMaterialSystem->GetRenderContext()->Bind( g_materialVertexColor );
+		IMesh *pBuildMesh = g_pMaterialSystem->GetRenderContext()->GetDynamicMesh( false );
 		meshBuilder.Begin( pBuildMesh, MATERIAL_TRIANGLES, materialBatch.m_Verts.Count(), 
 			materialBatch.m_TriListIndices.Count() );
 
@@ -326,7 +327,7 @@ int DebugDrawModelBoneWeights( IStudioRender *pStudioRender, DrawModelInfo_t& in
 			int k;
 			for( k = 0; k < vert.m_NumBones; k++ )
 			{
-				const matrix3x4_t &poseToWorld = *pStudioRender->GetPoseToWorld( vert.m_BoneIndex[k] );
+				const matrix3x4_t &poseToWorld = tris.m_PoseToWorld[vert.m_BoneIndex[k]];
 				Vector tmp;
 				VectorTransform( pos, poseToWorld, tmp );
 				skinnedPos += vert.m_BoneWeight[k] * tmp;
@@ -388,8 +389,8 @@ int DebugDrawModelBoneWeights( IStudioRender *pStudioRender, DrawModelInfo_t& in
 		meshBuilder.End();
 		pBuildMesh->Draw();
 	}
-	g_pMaterialSystem->MatrixMode( MATERIAL_MODEL );
-	g_pMaterialSystem->PopMatrix();
+	g_pMaterialSystem->GetRenderContext()->MatrixMode( MATERIAL_MODEL );
+	g_pMaterialSystem->GetRenderContext()->PopMatrix();
 
 	return 0;
 }

@@ -61,7 +61,7 @@
 #include "materialsystem/MaterialSystem_Config.h"
 #include "tier0/dbg.h"
 #include "istudiorender.h"
-#include "vstdlib/icommandline.h"
+#include "tier0/icommandline.h"
 #include "vmatrix.h"
 #include "studio_render.h"
 #include "vstdlib/cvar.h"
@@ -193,7 +193,7 @@ MatSysWindow::MatSysWindow (mxWindow *parent, int x, int y, int w, int h, const 
 
 	m_pCubemapTexture = g_pMaterialSystem->FindTexture( "hlmv/cubemap", NULL, true );
 	m_pCubemapTexture->IncrementReferenceCount();
-	g_pMaterialSystem->BindLocalCubemap( m_pCubemapTexture );
+	g_pMaterialSystem->GetRenderContext()->BindLocalCubemap( m_pCubemapTexture );
 
 	g_materialBackground	= g_pMaterialSystem->FindMaterial("hlmv/background", TEXTURE_GROUP_OTHER, true);
 	g_materialWireframe		= g_pMaterialSystem->FindMaterial("debug/debugmrmwireframe", TEXTURE_GROUP_OTHER, true);
@@ -414,15 +414,15 @@ void DrawBackground()
 	if (!g_viewerSettings.showBackground)
 		return;
 
-	g_pMaterialSystem->Bind(g_materialBackground);
-	g_pMaterialSystem->MatrixMode(MATERIAL_MODEL);
-	g_pMaterialSystem->PushMatrix();
-	g_pMaterialSystem->LoadIdentity();
-	g_pMaterialSystem->MatrixMode(MATERIAL_VIEW);
-	g_pMaterialSystem->PushMatrix();
-	g_pMaterialSystem->LoadIdentity();
+	g_pMaterialSystem->GetRenderContext()->Bind(g_materialBackground);
+	g_pMaterialSystem->GetRenderContext()->MatrixMode(MATERIAL_MODEL);
+	g_pMaterialSystem->GetRenderContext()->PushMatrix();
+	g_pMaterialSystem->GetRenderContext()->LoadIdentity();
+	g_pMaterialSystem->GetRenderContext()->MatrixMode(MATERIAL_VIEW);
+	g_pMaterialSystem->GetRenderContext()->PushMatrix();
+	g_pMaterialSystem->GetRenderContext()->LoadIdentity();
 	{
-		IMesh* pMesh = g_pMaterialSystem->GetDynamicMesh();
+		IMesh* pMesh = g_pMaterialSystem->GetRenderContext()->GetDynamicMesh();
 		CMeshBuilder meshBuilder;
 		meshBuilder.Begin( pMesh, MATERIAL_QUADS, 1 );
 
@@ -458,14 +458,14 @@ void DrawHelpers()
 {
 	if (g_viewerSettings.mousedown)
 	{
-		g_pMaterialSystem->Bind( g_materialBones );
+		g_pMaterialSystem->GetRenderContext()->Bind( g_materialBones );
 
-		g_pMaterialSystem->MatrixMode(MATERIAL_MODEL);
-		g_pMaterialSystem->LoadIdentity();
-		g_pMaterialSystem->MatrixMode(MATERIAL_VIEW);
-		g_pMaterialSystem->LoadIdentity();
+		g_pMaterialSystem->GetRenderContext()->MatrixMode(MATERIAL_MODEL);
+		g_pMaterialSystem->GetRenderContext()->LoadIdentity();
+		g_pMaterialSystem->GetRenderContext()->MatrixMode(MATERIAL_VIEW);
+		g_pMaterialSystem->GetRenderContext()->LoadIdentity();
 
-		IMesh* pMesh = g_pMaterialSystem->GetDynamicMesh();
+		IMesh* pMesh = g_pMaterialSystem->GetRenderContext()->GetDynamicMesh();
 
 		CMeshBuilder meshBuilder;
 		meshBuilder.Begin( pMesh, MATERIAL_LINES, 1 );
@@ -498,25 +498,25 @@ void DrawGroundPlane()
 	if (!g_viewerSettings.showGround)
 		return;
 
-	g_pMaterialSystem->Bind(g_materialFloor);
-	g_pMaterialSystem->MatrixMode(MATERIAL_MODEL);
-	g_pMaterialSystem->PushMatrix();;
-	g_pMaterialSystem->LoadIdentity();
-	g_pMaterialSystem->MatrixMode(MATERIAL_VIEW);
-	g_pMaterialSystem->PushMatrix();;
-	g_pMaterialSystem->LoadIdentity();
+	g_pMaterialSystem->GetRenderContext()->Bind(g_materialFloor);
+	g_pMaterialSystem->GetRenderContext()->MatrixMode(MATERIAL_MODEL);
+	g_pMaterialSystem->GetRenderContext()->PushMatrix();;
+	g_pMaterialSystem->GetRenderContext()->LoadIdentity();
+	g_pMaterialSystem->GetRenderContext()->MatrixMode(MATERIAL_VIEW);
+	g_pMaterialSystem->GetRenderContext()->PushMatrix();;
+	g_pMaterialSystem->GetRenderContext()->LoadIdentity();
 
-	g_pMaterialSystem->MatrixMode( MATERIAL_VIEW );
-	g_pMaterialSystem->LoadIdentity( );
+	g_pMaterialSystem->GetRenderContext()->MatrixMode( MATERIAL_VIEW );
+	g_pMaterialSystem->GetRenderContext()->LoadIdentity( );
 
-	g_pMaterialSystem->Rotate( -90,  1, 0, 0 );	    // put Z going up
-	g_pMaterialSystem->Rotate( -90,  0, 0, 1 );
+	g_pMaterialSystem->GetRenderContext()->Rotate( -90,  1, 0, 0 );	    // put Z going up
+	g_pMaterialSystem->GetRenderContext()->Rotate( -90,  0, 0, 1 );
 
-    g_pMaterialSystem->Translate( -g_pStudioModel->m_origin[0],  -g_pStudioModel->m_origin[1],  -g_pStudioModel->m_origin[2] );
+    g_pMaterialSystem->GetRenderContext()->Translate( -g_pStudioModel->m_origin[0],  -g_pStudioModel->m_origin[1],  -g_pStudioModel->m_origin[2] );
 
-	g_pMaterialSystem->Rotate( g_pStudioModel->m_angles[1],  0, 0, 1 );
-    g_pMaterialSystem->Rotate( g_pStudioModel->m_angles[0],  0, 1, 0 );
-    g_pMaterialSystem->Rotate( g_pStudioModel->m_angles[2],  1, 0, 0 );
+	g_pMaterialSystem->GetRenderContext()->Rotate( g_pStudioModel->m_angles[1],  0, 0, 1 );
+    g_pMaterialSystem->GetRenderContext()->Rotate( g_pStudioModel->m_angles[0],  0, 1, 0 );
+    g_pMaterialSystem->GetRenderContext()->Rotate( g_pStudioModel->m_angles[2],  1, 0, 0 );
 
 	static Vector tMap( 0, 0, 0 );
 	static Vector dxMap( 1, 0, 0 );
@@ -527,7 +527,7 @@ void DrawGroundPlane()
 
 	g_pStudioModel->GetMovement( g_pStudioModel->m_prevGroundCycles, deltaPos, deltaAngles );
 
-	IMesh* pMesh = g_pMaterialSystem->GetDynamicMesh();
+	IMesh* pMesh = g_pMaterialSystem->GetRenderContext()->GetDynamicMesh();
 	CMeshBuilder meshBuilder;
 	meshBuilder.Begin( pMesh, MATERIAL_QUADS, 1 );
 
@@ -594,10 +594,10 @@ void DrawGroundPlane()
 	meshBuilder.End();
 	pMesh->Draw();
 
-	g_pMaterialSystem->MatrixMode(MATERIAL_MODEL);
-	g_pMaterialSystem->PopMatrix();
-	g_pMaterialSystem->MatrixMode(MATERIAL_VIEW);
-	g_pMaterialSystem->PopMatrix();
+	g_pMaterialSystem->GetRenderContext()->MatrixMode(MATERIAL_MODEL);
+	g_pMaterialSystem->GetRenderContext()->PopMatrix();
+	g_pMaterialSystem->GetRenderContext()->MatrixMode(MATERIAL_VIEW);
+	g_pMaterialSystem->GetRenderContext()->PopMatrix();
 }
 
 
@@ -608,25 +608,25 @@ void DrawMovementBoxes()
 	if (!g_viewerSettings.showMovement)
 		return;
 
-	g_pMaterialSystem->Bind(g_materialFloor);
-	g_pMaterialSystem->MatrixMode(MATERIAL_MODEL);
-	g_pMaterialSystem->PushMatrix();
-	g_pMaterialSystem->LoadIdentity();
-	g_pMaterialSystem->MatrixMode(MATERIAL_VIEW);
-	g_pMaterialSystem->PushMatrix();
-	g_pMaterialSystem->LoadIdentity();
+	g_pMaterialSystem->GetRenderContext()->Bind(g_materialFloor);
+	g_pMaterialSystem->GetRenderContext()->MatrixMode(MATERIAL_MODEL);
+	g_pMaterialSystem->GetRenderContext()->PushMatrix();
+	g_pMaterialSystem->GetRenderContext()->LoadIdentity();
+	g_pMaterialSystem->GetRenderContext()->MatrixMode(MATERIAL_VIEW);
+	g_pMaterialSystem->GetRenderContext()->PushMatrix();
+	g_pMaterialSystem->GetRenderContext()->LoadIdentity();
 
-	g_pMaterialSystem->MatrixMode( MATERIAL_VIEW );
-	g_pMaterialSystem->LoadIdentity( );
+	g_pMaterialSystem->GetRenderContext()->MatrixMode( MATERIAL_VIEW );
+	g_pMaterialSystem->GetRenderContext()->LoadIdentity( );
 
-	g_pMaterialSystem->Rotate( -90,  1, 0, 0 );	    // put Z going up
-	g_pMaterialSystem->Rotate( -90,  0, 0, 1 );
+	g_pMaterialSystem->GetRenderContext()->Rotate( -90,  1, 0, 0 );	    // put Z going up
+	g_pMaterialSystem->GetRenderContext()->Rotate( -90,  0, 0, 1 );
 
-    g_pMaterialSystem->Translate( -g_pStudioModel->m_origin[0],  -g_pStudioModel->m_origin[1],  -g_pStudioModel->m_origin[2] );
+    g_pMaterialSystem->GetRenderContext()->Translate( -g_pStudioModel->m_origin[0],  -g_pStudioModel->m_origin[1],  -g_pStudioModel->m_origin[2] );
 
-	g_pMaterialSystem->Rotate( g_pStudioModel->m_angles[1],  0, 0, 1 );
-    g_pMaterialSystem->Rotate( g_pStudioModel->m_angles[0],  0, 1, 0 );
-    g_pMaterialSystem->Rotate( g_pStudioModel->m_angles[2],  1, 0, 0 );
+	g_pMaterialSystem->GetRenderContext()->Rotate( g_pStudioModel->m_angles[1],  0, 0, 1 );
+    g_pMaterialSystem->GetRenderContext()->Rotate( g_pStudioModel->m_angles[0],  0, 1, 0 );
+    g_pMaterialSystem->GetRenderContext()->Rotate( g_pStudioModel->m_angles[2],  1, 0, 0 );
 
 	static matrix3x4_t mStart( 1, 0, 0, 0 ,  0, 1, 0, 0 ,  0, 0, 1, 0 );
 	matrix3x4_t mTemp;
@@ -667,10 +667,10 @@ void DrawMovementBoxes()
 		g_pStudioModel->drawTransparentBox( bboxMin, bboxMax, mTemp, color, wirecolor );
 	}
 
-	g_pMaterialSystem->MatrixMode(MATERIAL_MODEL);
-	g_pMaterialSystem->PopMatrix();
-	g_pMaterialSystem->MatrixMode(MATERIAL_VIEW);
-	g_pMaterialSystem->PopMatrix();
+	g_pMaterialSystem->GetRenderContext()->MatrixMode(MATERIAL_MODEL);
+	g_pMaterialSystem->GetRenderContext()->PopMatrix();
+	g_pMaterialSystem->GetRenderContext()->MatrixMode(MATERIAL_VIEW);
+	g_pMaterialSystem->GetRenderContext()->PopMatrix();
 }
 
 
@@ -841,29 +841,29 @@ MatSysWindow::draw ()
 
 	UpdateSounds(); // need to call this multiple times per frame to avoid audio stuttering
 
-	g_pMaterialSystem->BeginFrame();
+	g_pMaterialSystem->BeginFrame(0);
 	g_pStudioModel->GetStudioRender()->BeginFrame();
 
-	g_pMaterialSystem->ClearColor3ub(g_viewerSettings.bgColor[0] * 255, g_viewerSettings.bgColor[1] * 255, g_viewerSettings.bgColor[2] * 255);
+	g_pMaterialSystem->GetRenderContext()->ClearColor3ub(g_viewerSettings.bgColor[0] * 255, g_viewerSettings.bgColor[1] * 255, g_viewerSettings.bgColor[2] * 255);
 	// g_pMaterialSystem->ClearColor3ub(0, 0, 0 );
 	g_pMaterialSystem->ClearBuffers(true, true);
 
-	g_pMaterialSystem->Viewport( 0, 0, w(), h() );
+	g_pMaterialSystem->GetRenderContext()->Viewport( 0, 0, w(), h() );
 
-	g_pMaterialSystem->MatrixMode( MATERIAL_PROJECTION );
-	g_pMaterialSystem->LoadIdentity( );
-	g_pMaterialSystem->PerspectiveX(g_viewerSettings.fov, (float)w() / (float)h(), 1.0f, 20000.0f);
+	g_pMaterialSystem->GetRenderContext()->MatrixMode( MATERIAL_PROJECTION );
+	g_pMaterialSystem->GetRenderContext()->LoadIdentity( );
+	g_pMaterialSystem->GetRenderContext()->PerspectiveX(g_viewerSettings.fov, (float)w() / (float)h(), 1.0f, 20000.0f);
 	
 	DrawBackground();
 	DrawGroundPlane();
 	DrawMovementBoxes();
 	DrawHelpers();
 
-	g_pMaterialSystem->MatrixMode( MATERIAL_VIEW );
-	g_pMaterialSystem->LoadIdentity( );
+	g_pMaterialSystem->GetRenderContext()->MatrixMode( MATERIAL_VIEW );
+	g_pMaterialSystem->GetRenderContext()->LoadIdentity( );
 	// FIXME: why is this needed?  Doesn't SetView() override this?
-	g_pMaterialSystem->Rotate( -90,  1, 0, 0 );	    // put Z going up
-	g_pMaterialSystem->Rotate( -90,  0, 0, 1 );
+	g_pMaterialSystem->GetRenderContext()->Rotate( -90,  1, 0, 0 );	    // put Z going up
+	g_pMaterialSystem->GetRenderContext()->Rotate( -90,  0, 0, 1 );
 
 	int polycount = g_pStudioModel->DrawModel ();
 

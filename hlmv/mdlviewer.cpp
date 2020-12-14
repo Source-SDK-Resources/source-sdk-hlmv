@@ -34,8 +34,8 @@
 #include "ControlPanel.h"
 #include "StudioModel.h"
 #include "FileAssociation.h"
-#include "vstdlib/strtools.h"
-#include "vstdlib/icommandline.h"
+#include "tier1/strtools.h"
+#include "tier0/icommandline.h"
 #include "filesystem.h"
 #include "ifilesystemopendialog.h"
 #include "appframework/appframework.h"
@@ -50,6 +50,8 @@
 #include "materialsystem/imaterialsystemhardwareconfig.h"
 #include "SoundEmitterSystem/isoundemittersystembase.h"
 #include "soundsystem/isoundsystem.h"
+#include "tier1/tier1.h"
+#include "tier2/tier2.h"
 
 bool g_bOldFileDialogs = false;
 
@@ -68,8 +70,6 @@ IMDLCache *g_pMDLCache;
 IPhysicsSurfaceProps *physprop;
 IPhysicsCollision *physcollision;
 IFileSystem *g_pFileSystem;
-IMaterialSystem *g_pMaterialSystem;
-IMaterialSystemHardwareConfig *g_pMaterialSystemHardwareConfig;
 IStudioDataCache *g_pStudioDataCache;
 IDataCache *g_pDataCache;
 ISoundEmitterSystemBase *g_pSoundEmitterBase;
@@ -883,10 +883,7 @@ bool CHLModelViewerApp::Create()
 	g_dxlevel = CommandLine()->ParmValue( "-dx", 0 );
 	g_bOldFileDialogs = ( CommandLine()->FindParm( "-olddialogs" ) != 0 );
 
-	// Add in the cvar factory
-	AppModule_t cvarModule = LoadModule( VStdLib_GetICVarFactory() );
-	AddSystem( cvarModule, VENGINE_CVAR_INTERFACE_VERSION );
-	
+
 	AppSystemInfo_t appSystems[] = 
 	{
 		{ "materialsystem.dll",		MATERIAL_SYSTEM_INTERFACE_VERSION },
@@ -904,9 +901,18 @@ bool CHLModelViewerApp::Create()
 	if ( !AddSystems( appSystems ) ) 
 		return false;
 
+	g_Factory = GetFactory();
+
+	ConnectTier1Libraries(&g_Factory, 1);
+	ConnectTier2Libraries(&g_Factory, 1);
+
+	// Add in the cvar factory
+	AppModule_t cvarModule = LoadModule(VStdLib_GetICVarFactory());
+	AddSystem(cvarModule, CVAR_INTERFACE_VERSION);
+
+
 	g_pFileSystem = (IFileSystem*)FindSystem( FILESYSTEM_INTERFACE_VERSION );
 	g_pMaterialSystem = (IMaterialSystem*)FindSystem( MATERIAL_SYSTEM_INTERFACE_VERSION );
-	g_pMaterialSystemHardwareConfig = (IMaterialSystemHardwareConfig*)FindSystem( MATERIALSYSTEM_HARDWARECONFIG_INTERFACE_VERSION );
 	g_pStudioRender = (IStudioRender*)FindSystem( STUDIO_RENDER_INTERFACE_VERSION );
 	g_pDataCache = (IDataCache*)FindSystem( DATACACHE_INTERFACE_VERSION );
 	g_pMDLCache = (IMDLCache*)FindSystem( MDLCACHE_INTERFACE_VERSION );
@@ -926,9 +932,12 @@ bool CHLModelViewerApp::Create()
 	{
 		pShaderDLL = "shaderapidx9.dll";
 	}
-	g_pMaterialSystem->SetShaderAPI( pShaderDLL );
+	
+	g_pMaterialSystem->SetShaderAPI(pShaderDLL);
+	g_pMaterialSystem->Connect(g_Factory);
 
-	g_Factory = GetFactory();
+	
+	g_pMaterialSystemHardwareConfig = (IMaterialSystemHardwareConfig*)FindSystem(MATERIALSYSTEM_HARDWARECONFIG_INTERFACE_VERSION);
 
 	return true;
 }
@@ -936,9 +945,11 @@ bool CHLModelViewerApp::Create()
 
 void CHLModelViewerApp::Destroy()
 {
+	DisconnectTier1Libraries();
+	DisconnectTier2Libraries();
+
 	g_pFileSystem = NULL;
 	g_pMaterialSystem = NULL;
-	g_pMaterialSystemHardwareConfig = NULL;
 	g_pStudioRender = NULL;
 	g_pDataCache = NULL;
 	g_pMDLCache = NULL;
@@ -1038,7 +1049,6 @@ int CHLModelViewerApp::Main()
 	g_pSoundEmitterBase->ModInit();
 
 	g_pDataCache->SetSize( 64 * 1024 * 1024 );
- 	g_pMaterialSystem->ModInit();
 
 	//mx::setDisplayMode (0, 0, 0);
 	g_MDLViewer = new MDLViewer ();
@@ -1077,7 +1087,6 @@ int CHLModelViewerApp::Main()
 
 	int nRetVal = mx::run ();
 
- 	g_pMaterialSystem->ModShutdown();
 	g_pStudioModel->Shutdown();
 	g_pMaterialSystem->ModShutdown();
 

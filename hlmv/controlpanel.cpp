@@ -43,7 +43,7 @@
 #include "studio_render.h"
 #include "SoundEmitterSystem/isoundemittersystembase.h"
 #include "tier1/keyvalues.h"
-#include "vstdlib/icommandline.h"
+#include "tier0/icommandline.h"
 
 extern char g_appTitle[];
 extern IPhysicsSurfaceProps *physprop;
@@ -2204,13 +2204,13 @@ ControlPanel::handleEvent (mxEvent *event)
 
 				if (index >= 0)
 				{
-					slFlexScale[flex]->setValue(g_pStudioModel->GetFlexControllerRaw(index));
+					slFlexScale[flex]->setValue(g_pStudioModel->GetFlexControllerRaw((LocalFlexController_t)index));
 				}
 			}
 			else if (event->action >= IDC_FLEXSCALE && event->action < IDC_FLEXSCALE + NUM_FLEX_SLIDERS)
 			{
 				int flex = (event->action - IDC_FLEXSCALE);
-				g_pStudioModel->SetFlexControllerRaw( cFlex[flex]->getSelectedIndex(), ((mxSlider *) event->widget)->getValue() );
+				g_pStudioModel->SetFlexControllerRaw((LocalFlexController_t)cFlex[flex]->getSelectedIndex(), ((mxSlider *) event->widget)->getValue() );
 			}
 			else if ( event->action >= IDC_PHYS_FIRST && event->action <= IDC_PHYS_LAST )
 			{
@@ -3151,7 +3151,7 @@ ControlPanel::initSkinChoices()
 }
 
 
-
+extern DrawModelResults_t g_DrawModelResults;
 void
 ControlPanel::setModelInfo()
 {
@@ -3164,14 +3164,14 @@ ControlPanel::setModelInfo()
 	static int checkSum = 0;
 	static int boneLODCount = 0;
 	static int numBatches = 0;
-	if( checkSum == hdr->GetRenderHdr()->checksum && boneLODCount == g_DrawModelInfo.m_NumHardwareBones && numBatches == g_DrawModelInfo.m_NumBatches)
+	if( checkSum == hdr->GetRenderHdr()->checksum && boneLODCount == g_DrawModelResults.m_NumHardwareBones && numBatches == g_DrawModelResults.m_NumBatches)
 	{
 		return;
 	}
 
 	checkSum = hdr->GetRenderHdr()->checksum;
-	boneLODCount = g_DrawModelInfo.m_NumHardwareBones;
-	numBatches = g_DrawModelInfo.m_NumBatches;
+	boneLODCount = g_DrawModelResults.m_NumHardwareBones;
+	numBatches = g_DrawModelResults.m_NumBatches;
 
 	int hbcount = 0;
 	for ( int s = 0; s < hdr->numhitboxsets(); s++ )
@@ -3202,7 +3202,7 @@ ControlPanel::setModelInfo()
 		"Skin Families: %d\n"
 		"Bodyparts: %d\n"
 		"Attachments: %d\n",
-		g_DrawModelInfo.m_NumMaterials,
+		g_DrawModelResults.m_NumMaterials,
 		hdr->numskinfamilies(),
 		hdr->numbodyparts(),
 		hdr->GetNumAttachments());
@@ -3269,14 +3269,15 @@ void ControlPanel::setFOV( float fov )
 void ControlPanel::initFlexes()
 {
 	CStudioHdr *hdr = g_pStudioModel->GetStudioHdr();
-	int i, j;
+	LocalFlexController_t i;
+	int j;
 
 	if (hdr)
 	{
 		for (j = 0; j < NUM_FLEX_SLIDERS; j++)
 		{
 			cFlex[j]->removeAll();
-			for (i = 0; i < hdr->numflexcontrollers(); i++)
+			for (i = (LocalFlexController_t)0; i < hdr->numflexcontrollers(); i++)
 			{
 				cFlex[j]->add( hdr->pFlexcontroller(i)->pszName() );
 			}
@@ -3284,15 +3285,15 @@ void ControlPanel::initFlexes()
 		}
 	}
 
-	for (i = 0; i < hdr->numflexcontrollers(); i++)
+	for (i = (LocalFlexController_t)0; i < hdr->numflexcontrollers(); i++)
 	{
 		g_pStudioModel->SetFlexController( i, 0.0 );
-		hdr->pFlexcontroller( i )->link = i;
+		hdr->pFlexcontroller( i )->localToGlobal = i;
 	}
 
 	for (j = 0; j < NUM_FLEX_SLIDERS; j++)
 	{
-		i = cFlex[j]->getSelectedIndex();
+		i = (LocalFlexController_t)cFlex[j]->getSelectedIndex();
 
 		if (i >= 0)
 		{

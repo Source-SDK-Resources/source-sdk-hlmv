@@ -46,16 +46,16 @@ float LocalTextureToLinear( int c )
 
 void StudioModel::RunFlexRules(  )
 {
-	int i;
+	LocalFlexController_t i;
 
 	CStudioHdr *pStudioHdr = GetStudioHdr();
 
 	float src[MAXSTUDIOFLEXCTRL*4];
 
-	for (i = 0; i < pStudioHdr->numflexcontrollers(); i++)
+	for (i = (LocalFlexController_t)0; i < pStudioHdr->numflexcontrollers(); i++)
 	{
 		mstudioflexcontroller_t *pflex = pStudioHdr->pFlexcontroller( i );
-		int j = pStudioHdr->pFlexcontroller( i )->link;
+		int j = pStudioHdr->pFlexcontroller( i )->localToGlobal;
 		// remap m_flexweights to full dynamic range, global flexcontroller indexes
 		src[j] = m_flexweight[i] * (pflex->max - pflex->min) + pflex->min; 
 	}
@@ -109,7 +109,7 @@ int StudioModel::FlexVerts( mstudiomesh_t *pmesh )
 			continue;
 
 		mstudiovertanim_t *pvanim = pflex[i].pVertanim( 0 );
-
+		
 		// JasonM TODO: fix this so there's a float path?
 		// If we have a separate stream for flexes, use fixed point
 		for (j = 0; j < pflex[i].numverts; j++)
@@ -124,8 +124,8 @@ int StudioModel::FlexVerts( mstudiomesh_t *pmesh )
 					VectorCopy( *vertData->Position(n), g_flexedverts[n] );
 					VectorCopy( *vertData->Normal(n), g_flexednorms[n] );
 				}
-				VectorMA( g_flexedverts[n], w, pvanim[j].GetDeltaFixed(), g_flexedverts[n] );
-				VectorMA( g_flexednorms[n], w, pvanim[j].GetNDeltaFixed(), g_flexednorms[n] );
+				VectorMA( g_flexedverts[n], w, pvanim[j].GetDeltaFixed(m_pStudioHdr->VertAnimFixedPointScale()), g_flexedverts[n] );
+				VectorMA( g_flexednorms[n], w, pvanim[j].GetNDeltaFixed(m_pStudioHdr->VertAnimFixedPointScale()), g_flexednorms[n] );
 			}
 			else
 			{

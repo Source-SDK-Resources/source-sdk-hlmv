@@ -62,6 +62,8 @@ matrix3x4_t		g_viewtransform;				// view transformation
 static int			maxNumVertices;
 static int			first = 1;
 
+matrix3x4_t* g_pBoneToWorld;
+
 //-----------------------------------------------------------------------------
 // Purpose:
 //-----------------------------------------------------------------------------
@@ -342,7 +344,7 @@ void StudioModel::OverrideBones( bool *override )
 			}
 			if ( parentBone >= 0 )
 			{
-				parentMatrix = g_pStudioRender->GetBoneToWorld( parentBone );
+				parentMatrix = &g_pBoneToWorld[parentBone];
 			}
 
 			if ( m_physPreviewBone == i )
@@ -362,7 +364,7 @@ void StudioModel::OverrideBones( bool *override )
 				MatrixCopy( pmesh->m_matrix, bonematrix );
 			}
 
-			ConcatTransforms(*parentMatrix, bonematrix, *g_pStudioRender->GetBoneToWorld( boneIndex ));
+			ConcatTransforms(*parentMatrix, bonematrix, g_pBoneToWorld[boneIndex]);
 		}
 	}
 }
@@ -420,10 +422,10 @@ void StudioModel::SetUpBones( bool mergeBones )
 	{
 		pIK = &m_ik;
 	}
-
-	InitPose(  pStudioHdr, pos, q );
 	
-	AccumulatePose( pStudioHdr, pIK, pos, q, m_sequence, m_cycle, m_poseparameter, BoneMask( ), 1.0, GetRealtimeTime() );
+	IBoneSetup boneSetup( pStudioHdr, BoneMask(), m_poseparameter);
+	boneSetup.InitPose(pos, q);
+	boneSetup.AccumulatePose( pos, q, m_sequence, m_cycle, 1.0, GetRealtimeTime(), pIK );
 
 	if ( g_viewerSettings.blendSequenceChanges &&
 		m_sequencetime < m_blendtime && 
@@ -439,8 +441,7 @@ void StudioModel::SetUpBones( bool mergeBones )
 
 		float s = 1.0 - ( m_sequencetime / m_blendtime );
 		s = 3 * s * s - 2 * s * s * s;
-
-		AccumulatePose( pStudioHdr, NULL, pos, q, m_prevsequence, m_prevcycle, m_poseparameter, BoneMask( ), s, GetRealtimeTime() );
+		boneSetup.AccumulatePose(pos, q, m_prevsequence, m_prevcycle, s, GetRealtimeTime(), pIK);
 		// Con_DPrintf("%d %f : %d %f : %f\n", pev->sequence, f, pev->prevsequence, pev->prevframe, s );
 	}
 	else
@@ -463,7 +464,7 @@ void StudioModel::SetUpBones( bool mergeBones )
 		{
 			if (m_Layer[i].m_priority == j && m_Layer[i].m_weight > 0)
 			{
-				AccumulatePose( pStudioHdr, pIK, pos, q, m_Layer[i].m_sequence, m_Layer[i].m_cycle, m_poseparameter, BoneMask( ), m_Layer[i].m_weight, GetRealtimeTime() );
+				boneSetup.AccumulatePose(pos, q, m_Layer[i].m_sequence, m_Layer[i].m_cycle, m_Layer[i].m_weight, GetRealtimeTime(), pIK);
 			}
 		}
 	}
@@ -478,9 +479,8 @@ void StudioModel::SetUpBones( bool mergeBones )
 	CIKContext auto_ik;
 	auto_ik.Init( pStudioHdr, a1, p1, 0.0, 0, BoneMask( ) );
 
-	CalcAutoplaySequences( pStudioHdr, &auto_ik, pos, q, m_poseparameter, BoneMask( ), GetAutoPlayTime() );
-
-	CalcBoneAdj( pStudioHdr, pos, q, m_controller, BoneMask( ) );
+	boneSetup.CalcAutoplaySequences(pos, q, GetAutoPlayTime(), &auto_ik);
+	boneSetup.CalcBoneAdj(pos, q, m_controller);
 
 	CBoneBitList boneComputed;
 	if (pIK)
@@ -494,7 +494,7 @@ void StudioModel::SetUpBones( bool mergeBones )
 		VectorRotate( deltaPos, g_viewtransform, tmp );
 		deltaPos = tmp;
 
-		pIK->UpdateTargets( pos, q, g_pStudioRender->GetBoneToWorld(0), boneComputed );
+		pIK->UpdateTargets( pos, q, &g_pBoneToWorld[0], boneComputed );
 
 		// FIXME: check number of slots?
 		for (int i = 0; i < pIK->m_target.Count(); i++)
@@ -558,7 +558,7 @@ void StudioModel::SetUpBones( bool mergeBones )
 			// drawLine( pTarget->est.pos, pTarget->latched.pos, 255, 0, 0 );
 		}
 		
-		pIK->SolveDependencies( pos, q, g_pStudioRender->GetBoneToWorld(0), boneComputed );
+		pIK->SolveDependencies( pos, q, &g_pBoneToWorld[0], boneComputed );
 	}
 
 	pbones = pStudioHdr->pBone( 0 );
@@ -579,7 +579,7 @@ void StudioModel::SetUpBones( bool mergeBones )
 			{
 				for (k = 0; k < 4; k++)
 				{
-					(*g_pStudioRender->GetBoneToWorld( i ))[j][k] = VEC_T_NAN;
+					g_pBoneToWorld[i][j][k] = VEC_T_NAN;
 				}
 			}
 			continue;
@@ -593,7 +593,7 @@ void StudioModel::SetUpBones( bool mergeBones )
 		{
 			// already calculated
 		}
-		else if (CalcProceduralBone( pStudioHdr, i, CBoneAccessor( g_pStudioRender->GetBoneToWorldArray() ) ))
+		else if (CalcProceduralBone( pStudioHdr, i, CBoneAccessor(g_pBoneToWorld) ))
 		{
 			continue;
 		}
@@ -606,19 +606,19 @@ void StudioModel::SetUpBones( bool mergeBones )
 			bonematrix[2][3] = pos[i][2];
 			if (pbones[i].parent == -1) 
 			{
-				ConcatTransforms (g_viewtransform, bonematrix, *g_pStudioRender->GetBoneToWorld( i ));
+				ConcatTransforms (g_viewtransform, bonematrix, g_pBoneToWorld[i]);
 				// MatrixCopy(bonematrix, g_bonetoworld[i]);
 			} 
 			else 
 			{
-				ConcatTransforms (*g_pStudioRender->GetBoneToWorld( pbones[i].parent ), bonematrix, *g_pStudioRender->GetBoneToWorld( i ) );
+				ConcatTransforms (g_pBoneToWorld[pbones[i].parent], bonematrix, g_pBoneToWorld[i] );
 			}
 		}
 
 		if (!mergeBones)
 		{
 			g_pCacheHdr = pStudioHdr;
-			MatrixCopy( *g_pStudioRender->GetBoneToWorld( i ), boneCache[i] );
+			MatrixCopy(g_pBoneToWorld[i], boneCache[i] );
 		}
 		else if (g_pCacheHdr)
 		{
@@ -631,7 +631,7 @@ void StudioModel::SetUpBones( bool mergeBones )
 			}
 			if (j < g_pCacheHdr->numbones())
 			{
-				MatrixCopy( boneCache[j], *g_pStudioRender->GetBoneToWorld( i ) );
+				MatrixCopy( boneCache[j], g_pBoneToWorld[i] );
 			}
 		}
 	}
@@ -785,7 +785,7 @@ static IMaterial *g_pAlpha;
 
 void StudioModel::drawBox (Vector const *v, float const * color )
 {
-	IMesh* pMesh = g_pMaterialSystem->GetDynamicMesh( );
+	IMesh* pMesh = g_pMaterialSystem->GetRenderContext()->GetDynamicMesh( );
 
 	CMeshBuilder meshBuilder;
 
@@ -850,7 +850,7 @@ void StudioModel::drawBox (Vector const *v, float const * color )
 
 void StudioModel::drawWireframeBox (Vector const *v, float const* color )
 {
-	IMesh* pMesh = g_pMaterialSystem->GetDynamicMesh( );
+	IMesh* pMesh = g_pMaterialSystem->GetRenderContext()->GetDynamicMesh( );
 
 	CMeshBuilder meshBuilder;
 
@@ -922,7 +922,7 @@ void StudioModel::drawWireframeBox (Vector const *v, float const* color )
 //-----------------------------------------------------------------------------
 void StudioModel::drawTransform( matrix3x4_t& m, float flLength )
 {
-	IMesh* pMesh = g_pMaterialSystem->GetDynamicMesh( );
+	IMesh* pMesh = g_pMaterialSystem->GetRenderContext()->GetDynamicMesh( );
 	CMeshBuilder meshBuilder;
 
 	for (int k = 0; k < 3; k++)
@@ -957,9 +957,9 @@ void drawLine( Vector const &p1, Vector const &p2, int r, int g, int b, bool noD
 
 void StudioModel::drawLine( Vector const &p1, Vector const &p2, int r, int g, int b )
 {
-	g_pMaterialSystem->Bind( g_materialLines );
+	g_pMaterialSystem->GetRenderContext()->Bind( g_materialLines );
 
-	IMesh* pMesh = g_pMaterialSystem->GetDynamicMesh( );
+	IMesh* pMesh = g_pMaterialSystem->GetRenderContext()->GetDynamicMesh( );
 	CMeshBuilder meshBuilder;
 
 	meshBuilder.Begin( pMesh, MATERIAL_LINES, 1 );
@@ -1026,10 +1026,10 @@ void StudioModel::drawTransparentBox( Vector const &bbmin, Vector const &bbmax,
 	VectorTransform (v[6], m, v2[6]);
 	VectorTransform (v[7], m, v2[7]);
 	
-	g_pMaterialSystem->Bind( g_pAlpha );
+	g_pMaterialSystem->GetRenderContext()->Bind( g_pAlpha );
 	drawBox( v2, color );
 
-	g_pMaterialSystem->Bind( g_materialBones );
+	g_pMaterialSystem->GetRenderContext()->Bind( g_materialBones );
 	drawWireframeBox( v2, wirecolor );
 }
 
@@ -1052,13 +1052,12 @@ void StudioModel::UpdateStudioRenderConfig( bool bWireframe, bool bZBufferWirefr
 {
 	StudioRenderConfig_t config;
 	memset( &config, 0, sizeof( config ) );
-	config.pConPrintf = StudioRender_Warning;
-	config.pConDPrintf = StudioRender_Warning;
 	config.fEyeShiftX = 0.0f;
 	config.fEyeShiftY = 0.0f;
 	config.fEyeShiftZ = 0.0f;
 	config.fEyeSize = 0;
-	config.eyeGloss = 1;
+	// Ozxy: what?
+	//config.eyeGloss = 1;
 	config.drawEntities = 1;
 	config.skin = 0;
 	config.fullbright = 0;
@@ -1080,9 +1079,9 @@ void StudioModel::UpdateStudioRenderConfig( bool bWireframe, bool bZBufferWirefr
 	config.bTeeth = true;
 	config.bEyes = true;
 	config.bFlex = true;
-	config.SetNormals( bNormals );
-	config.SetTangentFrame( bTangentFrame );
-	config.SetZBufferedWireframe( bZBufferWireframe );
+	config.bDrawNormals = bNormals;
+	config.bDrawTangentFrame = bTangentFrame;
+	config.bDrawZBufferedWireframe = bZBufferWireframe;
 	config.bShowEnvCubemapOnly = false;
 	g_pStudioRender->UpdateConfig( config );
 
@@ -1116,9 +1115,9 @@ void StudioModel::DrawBones( )
 	CStudioHdr *pStudioHdr = GetStudioHdr();
 	mstudiobone_t *pbones = pStudioHdr->pBone( 0 );
 
-	g_pMaterialSystem->Bind( g_materialBones );
+	g_pMaterialSystem->GetRenderContext()->Bind( g_materialBones );
 
-	IMesh* pMesh = g_pMaterialSystem->GetDynamicMesh( );
+	IMesh* pMesh = g_pMaterialSystem->GetRenderContext()->GetDynamicMesh( );
 	CMeshBuilder meshBuilder;
 
 	bool drawRed = (g_viewerSettings.highlightBone >= 0);
@@ -1141,14 +1140,14 @@ void StudioModel::DrawBones( )
 					meshBuilder.Color3ub( 255, 255, 0 );
 				else
 					meshBuilder.Color3ub( 0, 255, 255 );
-				meshBuilder.Position3f( (*g_pStudioRender->GetBoneToWorld( j ))[0][3], (*g_pStudioRender->GetBoneToWorld( j ))[1][3], (*g_pStudioRender->GetBoneToWorld( j ))[2][3]);
+				meshBuilder.Position3f(g_pBoneToWorld[j][0][3], g_pBoneToWorld[j][1][3], g_pBoneToWorld[j][2][3]);
 				meshBuilder.AdvanceVertex();
 
 				if (drawRed)
 					meshBuilder.Color3ub( 255, 255, 0 );
 				else
 					meshBuilder.Color3ub( 0, 255, 255 );
-				meshBuilder.Position3f( (*g_pStudioRender->GetBoneToWorld( i ))[0][3], (*g_pStudioRender->GetBoneToWorld( i ))[1][3], (*g_pStudioRender->GetBoneToWorld( i ))[2][3]);
+				meshBuilder.Position3f(g_pBoneToWorld[i][0][3], g_pBoneToWorld[i][1][3], g_pBoneToWorld[i][2][3]);
 				meshBuilder.AdvanceVertex();
 
 				meshBuilder.End();
@@ -1162,7 +1161,7 @@ void StudioModel::DrawBones( )
 				continue;
 		}
 
-		drawTransform( *g_pStudioRender->GetBoneToWorld( i ) );
+		drawTransform(g_pBoneToWorld[i]);
 	}
 
 	// manadatory to access correct verts
@@ -1217,7 +1216,7 @@ void StudioModel::DrawAttachments( )
 	if (!g_viewerSettings.showAttachments)
 		return;
 
-	g_pMaterialSystem->Bind( g_materialBones );
+	g_pMaterialSystem->GetRenderContext()->Bind( g_materialBones );
 
 	CStudioHdr *pStudioHdr = GetStudioHdr();
 	for (int i = 0; i < pStudioHdr->GetNumAttachments(); i++)
@@ -1225,7 +1224,7 @@ void StudioModel::DrawAttachments( )
 		mstudioattachment_t &pattachments = (mstudioattachment_t &)pStudioHdr->pAttachment( i );
 
 		matrix3x4_t world;
-		ConcatTransforms( *g_pStudioRender->GetBoneToWorld( pStudioHdr->GetAttachmentBone( i ) ), pattachments.local, world );
+		ConcatTransforms( g_pBoneToWorld[pStudioHdr->GetAttachmentBone( i )], pattachments.local, world );
 
 		drawTransform( world );
 	}
@@ -1238,12 +1237,12 @@ void StudioModel::DrawEditAttachment()
 	int iEditAttachment = g_viewerSettings.m_iEditAttachment;
 	if ( iEditAttachment >= 0 && iEditAttachment < pStudioHdr->GetNumAttachments() )
 	{
-		g_pMaterialSystem->Bind( g_materialBones );
+		g_pMaterialSystem->GetRenderContext()->Bind( g_materialBones );
 		
 		mstudioattachment_t &pAttachment = (mstudioattachment_t &)pStudioHdr->pAttachment( iEditAttachment );
 
 		matrix3x4_t world;
-		ConcatTransforms( *g_pStudioRender->GetBoneToWorld( pStudioHdr->GetAttachmentBone( iEditAttachment ) ), pAttachment.local, world );
+		ConcatTransforms( g_pBoneToWorld[pStudioHdr->GetAttachmentBone( iEditAttachment )], pAttachment.local, world );
 
 		drawTransform( world );
 	}
@@ -1296,7 +1295,7 @@ void StudioModel::DrawHitboxes( )
 			interiorcolor[2] = hullcolor[c][2] * 0.7;
 			interiorcolor[3] = hullcolor[c][3] * 0.4;
 
-			drawTransparentBox( pBBox->bbmin, pBBox->bbmax, *g_pStudioRender->GetBoneToWorld( pBBox->bone ), interiorcolor, hullcolor[ c ] );
+			drawTransparentBox( pBBox->bbmin, pBBox->bbmax, g_pBoneToWorld[pBBox->bone], interiorcolor, hullcolor[ c ] );
 		}
 	}
 
@@ -1423,7 +1422,7 @@ void StudioModel::SetViewTarget( void )
 	CStudioHdr *pStudioHdr = GetStudioHdr();
 	mstudioattachment_t &patt = (mstudioattachment_t &)pStudioHdr->pAttachment( iEyeAttachment );
 	matrix3x4_t attToWorld;
-	ConcatTransforms( *g_pStudioRender->GetBoneToWorld( pStudioHdr->GetAttachmentBone( iEyeAttachment ) ), patt.local, attToWorld ); 
+	ConcatTransforms( g_pBoneToWorld[pStudioHdr->GetAttachmentBone( iEyeAttachment )], patt.local, attToWorld );
 
 	// look forward
 	local = Vector( 32, 0, 0 );
@@ -1474,7 +1473,7 @@ void StudioModel::SetViewTarget( void )
 	local = local * flDist;
 	VectorTransform( local, attToWorld, tmp );
 
-	g_pStudioRender->SetEyeViewTarget( tmp );
+	g_pStudioRender->SetEyeViewTarget( GetStudioRenderHdr(), m_bodynum, tmp );
 }
 
 
@@ -1640,8 +1639,8 @@ void StudioModel::SetHeadPosition( Vector pos[], Quaternion q[] )
 
 	matrix3x4_t attToWorld;
 	int iBone =  pStudioHdr->GetAttachmentBone( iEyeAttachment );
-	BuildBoneChain( pStudioHdr, g_viewtransform, pos, q, iBone, g_pStudioRender->GetBoneToWorld( 0 ) );
-	ConcatTransforms( *g_pStudioRender->GetBoneToWorld( iBone ), patt.local, attToWorld );
+	BuildBoneChain( pStudioHdr, g_viewtransform, pos, q, iBone, &g_pBoneToWorld[0] );
+	ConcatTransforms( g_pBoneToWorld[iBone], patt.local, attToWorld );
 
 	Vector vDefault;
 	VectorRotate( Vector( 100, 0, 0 ), attToWorld, vDefault );
@@ -1732,6 +1731,11 @@ float StudioModel::SetHeadPosition( matrix3x4_t& attToWorld, Vector const &vTarg
 
 DrawModelInfo_t g_DrawModelInfo;
 bool g_bDrawModelInfoValid = false;
+
+// Ozxy: Turns out, data from this is needed later. More crimes!
+DrawModelResults_t g_DrawModelResults;
+
+
 /*
 ================
 StudioModel::DrawModel
@@ -1773,6 +1777,8 @@ int StudioModel::DrawModel( bool mergeBones )
 
 	//	g_pStudioRender->SetEyeViewTarget( viewOrigin );
 	
+	g_pBoneToWorld = g_pStudioRender->LockBoneMatrices(MAXSTUDIOBONES);
+
 	SetUpBones( mergeBones );
 
 	SetViewTarget( );
@@ -1800,11 +1806,17 @@ int StudioModel::DrawModel( bool mergeBones )
 		d = ExponentialDecay( 0.8, 0.033, m_dt );
 	}
 
+	// Apparently, we have to hand these over to be allocated and then copy into them now.
+	float* pFlexdescweight;
+	float* pFlexdescweight2;
+	g_pStudioRender->LockFlexWeights(MAXSTUDIOFLEXDESC, &pFlexdescweight, &pFlexdescweight2);
 	for (i = 0; i < pStudioHdr->numflexdesc(); i++)
 	{
 		g_flexdescweight2[i] = g_flexdescweight2[i] * d + g_flexdescweight[i] * (1 - d);
+		pFlexdescweight[i] = g_flexdescweight[i];
+		pFlexdescweight2[i] = g_flexdescweight2[i];
 	}
-	g_pStudioRender->SetFlexWeights( MAXSTUDIOFLEXDESC, g_flexdescweight, g_flexdescweight2 );
+	g_pStudioRender->UnlockFlexWeights();
 
 	
 	// draw
@@ -1823,7 +1835,7 @@ int StudioModel::DrawModel( bool mergeBones )
 	g_DrawModelInfo.m_HitboxSet = g_MDLViewer->GetCurrentHitboxSet();
 	g_DrawModelInfo.m_pClientEntity = NULL;
 	g_DrawModelInfo.m_Lod = g_viewerSettings.autoLOD ? -1 : g_viewerSettings.lod;
-	g_DrawModelInfo.m_ppColorMeshes = NULL;
+	g_DrawModelInfo.m_pColorMeshes = NULL;
 
 	if( g_viewerSettings.renderMode == RM_BONEWEIGHTS )
 	{
@@ -1833,7 +1845,9 @@ int StudioModel::DrawModel( bool mergeBones )
 	else
 	{
 		// Draw the model normally (may include normal and/or tangent line segments)
-		count = g_pStudioRender->DrawModel( g_DrawModelInfo, vecModelOrigin, &m_LodUsed, &m_LodMetric );
+		g_pStudioRender->DrawModel(&g_DrawModelResults, g_DrawModelInfo, g_pBoneToWorld, g_flexdescweight, g_flexdescweight2, vecModelOrigin);
+		m_LodUsed = g_DrawModelResults.m_nLODUsed;
+		m_LodMetric = g_DrawModelResults.m_flLODMetric;
 
 		// Optionally overlay wireframe...
 		if ( g_viewerSettings.overlayWireframe && !(g_viewerSettings.renderMode == RM_WIREFRAME) )
@@ -1841,8 +1855,9 @@ int StudioModel::DrawModel( bool mergeBones )
 			// Set the state to trigger wireframe rendering
 			UpdateStudioRenderConfig( true, true, false, false );
 
-			// Draw the wireframe over top of the model
-			count = g_pStudioRender->DrawModel( g_DrawModelInfo, vecModelOrigin, &m_LodUsed, &m_LodMetric );
+			g_pStudioRender->DrawModel( &g_DrawModelResults, g_DrawModelInfo, g_pBoneToWorld, g_flexdescweight, g_flexdescweight2, vecModelOrigin);
+			m_LodUsed = g_DrawModelResults.m_nLODUsed;
+			m_LodMetric = g_DrawModelResults.m_flLODMetric;
 
 			// Restore the studio render config
 			UpdateStudioRenderConfig( g_viewerSettings.renderMode == RM_WIREFRAME, false,
@@ -1868,7 +1883,7 @@ int StudioModel::DrawModel( bool mergeBones )
 
 		for (int i = 0; i < pStudioHdr->numbones(); i++) 
 		{
-			matrix3x4_t *pMatrix = g_pStudioRender->GetBoneToWorld( i );
+			matrix3x4_t *pMatrix = &g_pBoneToWorld[i];
 
 			matrix3x4_t tmp1;
 
@@ -1888,7 +1903,10 @@ int StudioModel::DrawModel( bool mergeBones )
 		// Turn off any wireframe, normals or tangent frame display for the drop shadow
 		UpdateStudioRenderConfig( false, false, false, false );
 
-		g_pStudioRender->DrawModel( g_DrawModelInfo, vecModelOrigin, NULL, NULL );
+		DrawModelResults_t results;
+		g_pStudioRender->DrawModel( &results, g_DrawModelInfo, g_pBoneToWorld, g_flexdescweight, g_flexdescweight2, vecModelOrigin);
+
+		g_pStudioRender->UnlockBoneMatrices();
 
 		// Restore the studio render config
 		UpdateStudioRenderConfig( g_viewerSettings.renderMode == RM_WIREFRAME, false,
@@ -1909,15 +1927,15 @@ void StudioModel::DrawPhysmesh( CPhysmesh *pMesh, int boneIndex, IMaterial* pMat
 	matrix3x4_t *pMatrix;
 	if ( boneIndex >= 0 )
 	{
-		pMatrix = g_pStudioRender->GetBoneToWorld( boneIndex );
+		pMatrix = &g_pBoneToWorld[ boneIndex ];
 	}
 	else
 	{
 		pMatrix = &g_viewtransform;
 	}
 
-	g_pMaterialSystem->Bind( pMaterial );
-	IMesh* pMatMesh = g_pMaterialSystem->GetDynamicMesh( );
+	g_pMaterialSystem->GetRenderContext()->Bind( pMaterial );
+	IMesh* pMatMesh = g_pMaterialSystem->GetRenderContext()->GetDynamicMesh( );
 
 	CMeshBuilder meshBuilder;
 	meshBuilder.Begin( pMatMesh, MATERIAL_TRIANGLES, pMesh->m_vertCount/3 );
@@ -1986,13 +2004,13 @@ void StudioModel::DrawPhysConvex( CPhysmesh *pMesh, IMaterial* pMaterial )
 {
 	matrix3x4_t &matrix = g_viewtransform;
 
-	g_pMaterialSystem->Bind( pMaterial );
+	g_pMaterialSystem->GetRenderContext()->Bind( pMaterial );
 
 	for ( int i = 0; i < pMesh->m_pCollisionModel->ConvexCount(); i++ )
 	{
 		float color[4];
 		RandomColor( color, i );
-		IMesh* pMatMesh = g_pMaterialSystem->GetDynamicMesh( );
+		IMesh* pMatMesh = g_pMaterialSystem->GetRenderContext()->GetDynamicMesh( );
 		CMeshBuilder meshBuilder;
 		int triCount = pMesh->m_pCollisionModel->TriangleCount( i );
 		meshBuilder.Begin( pMatMesh, MATERIAL_TRIANGLES, triCount );
@@ -2020,9 +2038,11 @@ void StudioModel::DrawPhysConvex( CPhysmesh *pMesh, IMaterial* pMaterial )
 
 void StudioModel::Transform( Vector const &in1, mstudioboneweight_t const *pboneweight, Vector &out1 )
 {
+	GetTriangles_Output_t out;
+	g_pStudioRender->GetTriangles(g_DrawModelInfo, g_pBoneToWorld, out);
 	if (pboneweight->numbones == 1)
 	{
-		VectorTransform( in1, *g_pStudioRender->GetPoseToWorld(pboneweight->bone[0]), out1 );
+		VectorTransform( in1, out.m_PoseToWorld[pboneweight->bone[0]], out1 );
 	}
 	else
 	{
@@ -2032,7 +2052,7 @@ void StudioModel::Transform( Vector const &in1, mstudioboneweight_t const *pbone
 
 		for (int i = 0; i < pboneweight->numbones; i++)
 		{
-			VectorTransform( in1, *g_pStudioRender->GetPoseToWorld(pboneweight->bone[i]), out2 );
+			VectorTransform( in1, out.m_PoseToWorld[pboneweight->bone[i]], out2 );
 			VectorMA( out1, pboneweight->weight[i], out2, out1 );
 		}
 	}
@@ -2041,9 +2061,11 @@ void StudioModel::Transform( Vector const &in1, mstudioboneweight_t const *pbone
 
 void StudioModel::Rotate( Vector const &in1, mstudioboneweight_t const *pboneweight, Vector &out1 )
 {
+	GetTriangles_Output_t out;
+	g_pStudioRender->GetTriangles(g_DrawModelInfo, g_pBoneToWorld, out);
 	if (pboneweight->numbones == 1)
 	{
-		VectorRotate( in1, *g_pStudioRender->GetPoseToWorld(pboneweight->bone[0]), out1 );
+		VectorRotate( in1, out.m_PoseToWorld[pboneweight->bone[0]], out1 );
 	}
 	else
 	{
@@ -2053,7 +2075,7 @@ void StudioModel::Rotate( Vector const &in1, mstudioboneweight_t const *pbonewei
 
 		for (int i = 0; i < pboneweight->numbones; i++)
 		{
-			VectorRotate( in1, *g_pStudioRender->GetPoseToWorld(pboneweight->bone[i]), out2 );
+			VectorRotate( in1, out.m_PoseToWorld[pboneweight->bone[i]], out2 );
 			VectorMA( out1, pboneweight->weight[i], out2, out1 );
 		}
 		VectorNormalize( out1 );

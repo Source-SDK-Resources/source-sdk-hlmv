@@ -130,7 +130,7 @@ static void RecursiveHandleEvent( mxWindow *window, mxEvent *event )
 	}
 }
 
-char const *translatecode( int code )
+char const *translatecode( unsigned int code )
 {
 	switch ( code )
 	{

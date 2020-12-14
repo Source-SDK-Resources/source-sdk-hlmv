@@ -169,13 +169,13 @@ public:
 	int								SetSkin( int iValue );
 	int								FindBone( const char *pName );
 
-	int								LookupFlexController( char *szName );
+	LocalFlexController_t           LookupFlexController( char *szName );
 	void							SetFlexController( char *szName, float flValue );
-	void							SetFlexController( int iFlex, float flValue );
+	void							SetFlexController( LocalFlexController_t iFlex, float flValue );
 	float							GetFlexController( char *szName );
-	float							GetFlexController( int iFlex );
-	void							SetFlexControllerRaw( int iFlex, float flValue );
-	float							GetFlexControllerRaw( int iFlex );
+	float							GetFlexController( LocalFlexController_t iFlex );
+	void							SetFlexControllerRaw( LocalFlexController_t iFlex, float flValue );
+	float							GetFlexControllerRaw( LocalFlexController_t iFlex );
 
 	// void							CalcBoneTransform( int iBone, Vector pos[], Quaternion q[], matrix3x4_t& bonematrix );
 
