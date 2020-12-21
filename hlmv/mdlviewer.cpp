@@ -56,7 +56,7 @@
 bool g_bOldFileDialogs = false;
 
 MDLViewer *g_MDLViewer = 0;
-char g_appTitle[] = "Half-Life Model Viewer v1.22";
+char g_appTitle[] = "Half-Life Model Viewer v1.22 - Tweaked";
 static char recentFiles[8][256] = { "", "", "", "", "", "", "", "" };
 extern int g_dxlevel;
 bool g_bInError = false;
