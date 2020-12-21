@@ -61,6 +61,7 @@
 #define IDC_OPTIONS_MAKESCREENSHOT			1106
 #define IDC_OPTIONS_DUMP					1107
 #define IDC_OPTIONS_VIEWMODEL				1108
+#define IDC_OPTIONS_HIDEMENU				1109
 
 #define IDC_VIEW_FILEASSOCIATIONS			1201
 #define IDC_VIEW_ACTIVITIES					1202
@@ -98,6 +99,7 @@ class MDLViewer : public mxWindow
 	MatSysWindow *d_MatSysWindow;
 	ControlPanel *d_cpl;
 	mxMenu *menuView;
+	bool m_controlPanelHidden;
 
 	void loadRecentFiles ();
 	void saveRecentFiles ();

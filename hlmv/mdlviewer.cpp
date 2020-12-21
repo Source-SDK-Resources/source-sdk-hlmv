@@ -198,6 +198,7 @@ MDLViewer::MDLViewer ()
 {
 	d_MatSysWindow = 0;
 	d_cpl = 0;
+	m_controlPanelHidden = false;
 
 	// create menu stuff
 	mb = new mxMenuBar (this);
@@ -267,6 +268,8 @@ MDLViewer::MDLViewer ()
 	menuOptions->addSeparator ();
 	menuOptions->add ("Center View", IDC_OPTIONS_CENTERVIEW);
 	menuOptions->add ("Viewmodel Mode", IDC_OPTIONS_VIEWMODEL);
+	menuOptions->add ("Toggle Control Panel Hiding", IDC_OPTIONS_HIDEMENU);
+
 #ifdef WIN32
 	menuOptions->addSeparator ();
 	menuOptions->add ("Make Screenshot...", IDC_OPTIONS_MAKESCREENSHOT);
@@ -683,6 +686,20 @@ MDLViewer::handleEvent (mxEvent *event)
 			d_cpl->dumpModelInfo ();
 			break;
 
+		case IDC_OPTIONS_HIDEMENU:
+		{
+			m_controlPanelHidden = !m_controlPanelHidden;
+			d_cpl->setVisible(!m_controlPanelHidden);
+
+			// Redraw
+			mxEvent e;
+			e.event = mxEvent::Size;
+			e.width = w2();
+			e.height = h2();
+			handleEvent(&e);
+
+			break;
+		}
 		case IDC_VIEW_FILEASSOCIATIONS:
 			g_FileAssociation->setAssociation (0);
 			g_FileAssociation->setVisible (true);
@@ -780,8 +797,10 @@ MDLViewer::handleEvent (mxEvent *event)
 #define HEIGHT 140
 		h -= 40;
 #endif
-
-		d_MatSysWindow->setBounds (0, y, w, h - HEIGHT); // !!
+		if(m_controlPanelHidden)
+			d_MatSysWindow->setBounds(0, y, w, h); // !!
+		else
+			d_MatSysWindow->setBounds (0, y, w, h - HEIGHT); // !!
 		d_cpl->setBounds (0, y + h - HEIGHT, w, HEIGHT);
 	}
 	break;
