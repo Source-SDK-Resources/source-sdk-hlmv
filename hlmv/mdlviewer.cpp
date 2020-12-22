@@ -52,6 +52,7 @@
 #include "soundsystem/isoundsystem.h"
 #include "tier1/tier1.h"
 #include "tier2/tier2.h"
+#include "camera.h"
 
 bool g_bOldFileDialogs = false;
 
@@ -952,6 +953,7 @@ bool CHLModelViewerApp::Create()
 		pShaderDLL = "shaderapidx9.dll";
 	}
 	
+
 	g_pMaterialSystem->SetShaderAPI(pShaderDLL);
 	g_pMaterialSystem->Connect(g_Factory);
 

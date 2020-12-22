@@ -28,10 +28,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include "windows.h"
-
+#include "camera.h"
 
 ViewerSettings g_viewerSettings;
-
+extern CCamera g_cam;
 
 
 void InitViewerSettings ( const char *subkey )
@@ -39,8 +39,15 @@ void InitViewerSettings ( const char *subkey )
 	memset (&g_viewerSettings, 0, sizeof (ViewerSettings));
 	strcpy( g_viewerSettings.registrysubkey, subkey );
 
-	g_pStudioModel->m_angles.Init( -90.0f, 0.0f, 0.0f );
-	g_pStudioModel->m_origin.Init( 0.0f, 0.0f, 50.0f );
+
+	// 180 to face the model
+	g_cam.m_orbit.angles.Init(0.0f, 180.0f, 0.0f);
+	g_cam.m_orbit.origin.Init(0.0f, 0.0f, 0.0f);
+	g_cam.m_orbit.zoom = 60;
+
+
+	g_pStudioModel->m_angles.Init( 0.0f, 0.0f, 0.0f );
+	g_pStudioModel->m_origin.Init( 0.0f, 0.0f, 0.0f );
 
 	g_viewerSettings.renderMode = RM_TEXTURED;
 	g_viewerSettings.fov = 65.0f;
@@ -481,8 +488,9 @@ bool LoadViewerSettings (const char *filename, StudioModel *pModel )
 		return false;
 	}
 
-	RegReadQAngle( hModelKey, "Rot", pModel->m_angles );
-	RegReadVector( hModelKey, "Trans", pModel->m_origin );
+	RegReadQAngle( hModelKey, "CamRot", g_cam.m_orbit.angles );
+	RegReadVector( hModelKey, "CamTrans", g_cam.m_orbit.origin );
+	RegReadFloat( hModelKey, "CamZoom", &g_cam.m_orbit.zoom );
 	RegReadColor( hModelKey, "bgColor", g_viewerSettings.bgColor );
 	RegReadColor( hModelKey, "gColor", g_viewerSettings.gColor );
 	RegReadColor( hModelKey, "lColor", g_viewerSettings.lColor );
@@ -569,9 +577,11 @@ bool SaveViewerSettings (const char *filename, StudioModel *pModel )
 
 	MDLCACHE_CRITICAL_SECTION_( g_pMDLCache );
 	CStudioHdr *hdr = pModel->GetStudioHdr();
-
-	RegWriteQAngle( hModelKey, "Rot", pModel->m_angles );
-	RegWriteVector( hModelKey, "Trans", pModel->m_origin );
+	
+	RegWriteQAngle( hModelKey, "CamRot", g_cam.m_orbit.angles );
+	RegWriteVector( hModelKey, "CamTrans", g_cam.m_orbit.origin );
+	RegWriteFloat( hModelKey, "CamZoom", g_cam.m_orbit.zoom );
+	RegWriteVector( hModelKey, "CamTrans", g_cam.m_orbit.origin );
 	RegWriteColor( hModelKey, "bgColor", g_viewerSettings.bgColor );
 	RegWriteColor( hModelKey, "gColor", g_viewerSettings.gColor );
 	RegWriteColor( hModelKey, "lColor", g_viewerSettings.lColor );

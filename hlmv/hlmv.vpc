@@ -127,6 +127,7 @@ $Project "HLMV"
 		$File "studio_utils.cpp"
 		$File "sys_win.cpp"
 		$File "ViewerSettings.cpp"
+		$File "camera.cpp"
 	}
 
 	$Folder	"Header Files"
@@ -145,6 +146,7 @@ $Project "HLMV"
 		$File "ViewerSettings.h"
 		$File "mxLineEdit2.h"
 		$File "resource.h"
+		$File "camera.h"
 	}
 	
 	$Folder	"Resources"

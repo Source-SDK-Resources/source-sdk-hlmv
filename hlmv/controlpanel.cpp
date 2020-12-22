@@ -44,11 +44,13 @@
 #include "SoundEmitterSystem/isoundemittersystembase.h"
 #include "tier1/keyvalues.h"
 #include "tier0/icommandline.h"
+#include "camera.h"
 
 extern char g_appTitle[];
 extern IPhysicsSurfaceProps *physprop;
 extern bool LoadPhysicsProperties( void );
 extern ISoundEmitterSystemBase *g_pSoundEmitterBase;
+extern CCamera g_cam;
 
 
 //-----------------------------------------------------------------------------
@@ -3210,7 +3212,6 @@ ControlPanel::setModelInfo()
 	lModelInfo2->setLabel (str);
 }
 
-
 void
 ControlPanel::centerView()
 {
@@ -3228,12 +3229,11 @@ ControlPanel::centerView()
 	if (dz > d)
 		d = dz;
 
-	g_pStudioModel->m_origin[0] = d * 1.34f;
-	g_pStudioModel->m_origin[1] = 0.0f;
-	g_pStudioModel->m_origin[2] = min[2] + dz / 2;
-	g_pStudioModel->m_angles[0] = 0.0f;
-	g_pStudioModel->m_angles[1] = 0.0f;
-	g_pStudioModel->m_angles[2] = 0.0f;
+
+	g_cam.m_orbit.origin = (max + min) / 2.0f;
+	g_cam.m_orbit.angles = { 0, 180, 0 };
+	g_cam.m_orbit.zoom   = d * 1.34f;
+
 	g_viewerSettings.lightrot[0] = 0.0f;
 	g_viewerSettings.lightrot[1] = 180.0f; // light should aim at models front
 	g_viewerSettings.lightrot[2] = 0.0f;
@@ -3244,12 +3244,12 @@ ControlPanel::centerView()
 void ControlPanel::viewmodelView()
 {
 	// Sit the camera at the origin with a 54 degree FOV for viewmodels
-	g_pStudioModel->m_origin[0] = 0.0f;
-	g_pStudioModel->m_origin[1] = 0.0f;
-	g_pStudioModel->m_origin[2] = 0.0f;
-	g_pStudioModel->m_angles[0] = 0.0f;
-	g_pStudioModel->m_angles[1] = 180.0f;
-	g_pStudioModel->m_angles[2] = 0.0f;
+	
+
+	g_cam.m_orbit.origin = { 0, 0, 0 };
+	g_cam.m_orbit.angles = { 0, 0, 0 };
+	g_cam.m_orbit.zoom = 0;
+
 	g_viewerSettings.lightrot[0] = 0.0f;
 	g_viewerSettings.lightrot[1] = 180.0f; // light should aim at models front
 	g_viewerSettings.lightrot[2] = 0.0f;

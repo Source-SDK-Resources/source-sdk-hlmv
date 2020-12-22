@@ -68,6 +68,7 @@
 #include "SoundEmitterSystem/isoundemittersystembase.h"
 #include "soundsystem/isoundsystem.h"
 #include "soundchars.h"
+#include "camera.h"
 
 extern char g_appTitle[];
 extern bool g_bInError;
@@ -75,6 +76,8 @@ extern int g_dxlevel;
 
 extern ISoundEmitterSystemBase *g_pSoundEmitterBase;
 extern ISoundSystem *g_pSoundSystem;
+
+CCamera g_cam;
 
 
 void UpdateSounds()
@@ -239,7 +242,7 @@ MatSysWindow::handleEvent (mxEvent *event)
 {
 	MDLCACHE_CRITICAL_SECTION_( g_pMDLCache );
 
-	static float oldrx = 0, oldry = 0, oldtz = 50, oldtx = 0, oldty = 0;
+	static float oldrx = 0, oldry = 0, oldtz = 50, oldtx = 0, oldto = 0, oldty = 0;
 	static float oldlrx = 0, oldlry = 0;
 	static int oldx, oldy;
 
@@ -290,11 +293,12 @@ MatSysWindow::handleEvent (mxEvent *event)
 	{
 		g_viewerSettings.mousedown = true;
 
-		oldrx = g_pStudioModel->m_angles[0];
-		oldry = g_pStudioModel->m_angles[1];
-		oldtx = g_pStudioModel->m_origin[0];
-		oldty = g_pStudioModel->m_origin[1];
-		oldtz = g_pStudioModel->m_origin[2];
+		oldrx = g_cam.m_orbit.angles[0];
+		oldry = g_cam.m_orbit.angles[1];
+		oldto = g_cam.m_orbit.zoom;
+		oldtx = g_cam.m_orbit.origin[0];
+		oldty = g_cam.m_orbit.origin[1];
+		oldtz = g_cam.m_orbit.origin[2];
 		oldx = event->x;
 		oldy = event->y;
 		oldlrx = g_viewerSettings.lightrot[1];
@@ -320,8 +324,13 @@ MatSysWindow::handleEvent (mxEvent *event)
 		{
 			if (event->modifiers & mxEvent::KeyShift)
 			{
-				g_pStudioModel->m_origin[1] = oldty - (float) (event->x - oldx);
-				g_pStudioModel->m_origin[2] = oldtz + (float) (event->y - oldy);
+				Vector up, right;
+				AngleVectors(g_cam.m_orbit.angles, nullptr, &right, &up);
+
+
+				g_cam.m_orbit.origin = Vector(oldtx, oldty, oldtz)
+					                  - right * (float) (event->x - oldx) / 4.0f
+					                  + up    * (float) (event->y - oldy) / 4.0f;
 			}
 			else if (event->modifiers & mxEvent::KeyCtrl)
 			{
@@ -350,20 +359,8 @@ MatSysWindow::handleEvent (mxEvent *event)
 					oldx = event->x;
 					oldy = event->y;
 
-					QAngle movement;
-					matrix3x4_t tmp1, tmp2, tmp3;
-
-					movement = QAngle( 0, rx, 0 );
-					AngleMatrix( g_pStudioModel->m_angles, tmp1 );
-					AngleMatrix( movement, tmp2 );
-					ConcatTransforms( tmp1, tmp2, tmp3 );
-					MatrixAngles( tmp3, g_pStudioModel->m_angles );
-
-					movement = QAngle( ry, 0, 0 );
-					AngleMatrix( g_pStudioModel->m_angles, tmp1 );
-					AngleMatrix( movement, tmp2 );
-					ConcatTransforms( tmp2, tmp1, tmp3 );
-					MatrixAngles( tmp3, g_pStudioModel->m_angles );
+					g_cam.m_orbit.angles += QAngle (ry, -rx, 0);
+					
 				}
 				else
 				{
@@ -372,19 +369,14 @@ MatSysWindow::handleEvent (mxEvent *event)
 					oldx = event->x;
 					oldy = event->y;
 
-					QAngle movement = QAngle( 0, 0, ang2 - ang1 );
-
-					matrix3x4_t tmp1, tmp2, tmp3;
-					AngleMatrix( g_pStudioModel->m_angles, tmp1 );
-					AngleMatrix( movement, tmp2 );
-					ConcatTransforms( tmp2, tmp1, tmp3 );
-					MatrixAngles( tmp3, g_pStudioModel->m_angles );
+					g_cam.m_orbit.angles += QAngle(0, 0, ang2 - ang1);
+					
 				}
 			}
 		}
 		else if (event->buttons & mxEvent::MouseRightButton)
 		{
-			g_pStudioModel->m_origin[0] = oldtx + (float) (event->y - oldy);
+			g_cam.m_orbit.zoom = oldto + (float) (event->y - oldy);
 		}
 		redraw ();
 
@@ -498,24 +490,6 @@ void DrawGroundPlane()
 		return;
 
 	g_pMaterialSystem->GetRenderContext()->Bind(g_materialFloor);
-	g_pMaterialSystem->GetRenderContext()->MatrixMode(MATERIAL_MODEL);
-	g_pMaterialSystem->GetRenderContext()->PushMatrix();;
-	g_pMaterialSystem->GetRenderContext()->LoadIdentity();
-	g_pMaterialSystem->GetRenderContext()->MatrixMode(MATERIAL_VIEW);
-	g_pMaterialSystem->GetRenderContext()->PushMatrix();;
-	g_pMaterialSystem->GetRenderContext()->LoadIdentity();
-
-	g_pMaterialSystem->GetRenderContext()->MatrixMode( MATERIAL_VIEW );
-	g_pMaterialSystem->GetRenderContext()->LoadIdentity( );
-
-	g_pMaterialSystem->GetRenderContext()->Rotate( -90,  1, 0, 0 );	    // put Z going up
-	g_pMaterialSystem->GetRenderContext()->Rotate( -90,  0, 0, 1 );
-
-    g_pMaterialSystem->GetRenderContext()->Translate( -g_pStudioModel->m_origin[0],  -g_pStudioModel->m_origin[1],  -g_pStudioModel->m_origin[2] );
-
-	g_pMaterialSystem->GetRenderContext()->Rotate( g_pStudioModel->m_angles[1],  0, 0, 1 );
-    g_pMaterialSystem->GetRenderContext()->Rotate( g_pStudioModel->m_angles[0],  0, 1, 0 );
-    g_pMaterialSystem->GetRenderContext()->Rotate( g_pStudioModel->m_angles[2],  1, 0, 0 );
 
 	static Vector tMap( 0, 0, 0 );
 	static Vector dxMap( 1, 0, 0 );
@@ -593,10 +567,6 @@ void DrawGroundPlane()
 	meshBuilder.End();
 	pMesh->Draw();
 
-	g_pMaterialSystem->GetRenderContext()->MatrixMode(MATERIAL_MODEL);
-	g_pMaterialSystem->GetRenderContext()->PopMatrix();
-	g_pMaterialSystem->GetRenderContext()->MatrixMode(MATERIAL_VIEW);
-	g_pMaterialSystem->GetRenderContext()->PopMatrix();
 }
 
 
@@ -608,24 +578,6 @@ void DrawMovementBoxes()
 		return;
 
 	g_pMaterialSystem->GetRenderContext()->Bind(g_materialFloor);
-	g_pMaterialSystem->GetRenderContext()->MatrixMode(MATERIAL_MODEL);
-	g_pMaterialSystem->GetRenderContext()->PushMatrix();
-	g_pMaterialSystem->GetRenderContext()->LoadIdentity();
-	g_pMaterialSystem->GetRenderContext()->MatrixMode(MATERIAL_VIEW);
-	g_pMaterialSystem->GetRenderContext()->PushMatrix();
-	g_pMaterialSystem->GetRenderContext()->LoadIdentity();
-
-	g_pMaterialSystem->GetRenderContext()->MatrixMode( MATERIAL_VIEW );
-	g_pMaterialSystem->GetRenderContext()->LoadIdentity( );
-
-	g_pMaterialSystem->GetRenderContext()->Rotate( -90,  1, 0, 0 );	    // put Z going up
-	g_pMaterialSystem->GetRenderContext()->Rotate( -90,  0, 0, 1 );
-
-    g_pMaterialSystem->GetRenderContext()->Translate( -g_pStudioModel->m_origin[0],  -g_pStudioModel->m_origin[1],  -g_pStudioModel->m_origin[2] );
-
-	g_pMaterialSystem->GetRenderContext()->Rotate( g_pStudioModel->m_angles[1],  0, 0, 1 );
-    g_pMaterialSystem->GetRenderContext()->Rotate( g_pStudioModel->m_angles[0],  0, 1, 0 );
-    g_pMaterialSystem->GetRenderContext()->Rotate( g_pStudioModel->m_angles[2],  1, 0, 0 );
 
 	static matrix3x4_t mStart( 1, 0, 0, 0 ,  0, 1, 0, 0 ,  0, 0, 1, 0 );
 	matrix3x4_t mTemp;
@@ -666,10 +618,6 @@ void DrawMovementBoxes()
 		g_pStudioModel->drawTransparentBox( bboxMin, bboxMax, mTemp, color, wirecolor );
 	}
 
-	g_pMaterialSystem->GetRenderContext()->MatrixMode(MATERIAL_MODEL);
-	g_pMaterialSystem->GetRenderContext()->PopMatrix();
-	g_pMaterialSystem->GetRenderContext()->MatrixMode(MATERIAL_VIEW);
-	g_pMaterialSystem->GetRenderContext()->PopMatrix();
 }
 
 
@@ -840,6 +788,16 @@ MatSysWindow::draw ()
 
 	UpdateSounds(); // need to call this multiple times per frame to avoid audio stuttering
 
+	g_cam.m_fov = g_viewerSettings.fov;
+
+	g_cam.UpdateView();
+
+	VMatrix viewMatrix;
+	VMatrix projMatrix;
+	g_cam.GetViewMatrix(viewMatrix);
+	g_cam.GetProjectionMatrix(projMatrix, w(), h());
+
+
 	g_pMaterialSystem->BeginFrame(0);
 	g_pStudioModel->GetStudioRender()->BeginFrame();
 
@@ -867,12 +825,6 @@ MatSysWindow::draw ()
 	DrawGroundPlane();
 	DrawMovementBoxes();
 
-
-	g_pMaterialSystem->GetRenderContext()->MatrixMode( MATERIAL_VIEW );
-	g_pMaterialSystem->GetRenderContext()->LoadIdentity( );
-	// FIXME: why is this needed?  Doesn't SetView() override this?
-	g_pMaterialSystem->GetRenderContext()->Rotate( -90,  1, 0, 0 );	    // put Z going up
-	g_pMaterialSystem->GetRenderContext()->Rotate( -90,  0, 0, 1 );
 
 	int polycount = g_pStudioModel->DrawModel ();
 
