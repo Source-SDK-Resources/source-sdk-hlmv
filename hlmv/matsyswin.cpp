@@ -159,7 +159,16 @@ IMaterial *g_materialLines = NULL;
 IMaterial *g_materialFloor = NULL;
 IMaterial *g_materialVertexColor = NULL;
 IMaterial *g_materialShadow = NULL;
+IMaterial *g_materialHitbox = NULL;
 
+
+IMaterial* LoadMat(const char* name, const char* group, bool complain = true)
+{
+	IMaterial* pMat = g_pMaterialSystem->FindMaterial(name, group, complain);
+	if (pMat)
+		pMat->AddRef();
+	return pMat;
+}
 
 MatSysWindow::MatSysWindow (mxWindow *parent, int x, int y, int w, int h, const char *label, int style)
 : mxMatSysWindow (parent, x, y, w, h, label, style)
@@ -192,18 +201,20 @@ MatSysWindow::MatSysWindow (mxWindow *parent, int x, int y, int w, int h, const 
 	g_pMaterialSystem->AddRestoreFunc( RestoreMaterialSystemObjects );
 
 	m_pCubemapTexture = g_pMaterialSystem->FindTexture( "hlmv/cubemap", NULL, true );
-	m_pCubemapTexture->IncrementReferenceCount();
+	m_pCubemapTexture->AddRef();
 	g_pMaterialSystem->GetRenderContext()->BindLocalCubemap( m_pCubemapTexture );
 
-	g_materialBackground	= g_pMaterialSystem->FindMaterial("hlmv/background", TEXTURE_GROUP_OTHER, true);
-	g_materialWireframe		= g_pMaterialSystem->FindMaterial("debug/debugmrmwireframe", TEXTURE_GROUP_OTHER, true);
-	g_materialFlatshaded	= g_pMaterialSystem->FindMaterial("debug/debugdrawflatpolygons", TEXTURE_GROUP_OTHER, true);
-	g_materialSmoothshaded	= g_pMaterialSystem->FindMaterial("debug/debugmrmfullbright2", TEXTURE_GROUP_OTHER, true);
-	g_materialBones			= g_pMaterialSystem->FindMaterial("debug/debugskeleton", TEXTURE_GROUP_OTHER, true);
-	g_materialLines			= g_pMaterialSystem->FindMaterial("debug/debugwireframevertexcolor", TEXTURE_GROUP_OTHER, true);
-	g_materialFloor			= g_pMaterialSystem->FindMaterial("hlmv/floor", TEXTURE_GROUP_OTHER, true);
-	g_materialVertexColor   = g_pMaterialSystem->FindMaterial("debug/debugvertexcolor", TEXTURE_GROUP_OTHER, true);
-	g_materialShadow		= g_pMaterialSystem->FindMaterial("hlmv/shadow", TEXTURE_GROUP_OTHER, true);
+	g_materialBackground	= LoadMat("hlmv/background", TEXTURE_GROUP_OTHER, true);
+	g_materialWireframe		= LoadMat("debug/debugmrmwireframe", TEXTURE_GROUP_OTHER, true);
+	g_materialFlatshaded	= LoadMat("debug/debugdrawflatpolygons", TEXTURE_GROUP_OTHER, true);
+	g_materialSmoothshaded	= LoadMat("debug/debugmrmfullbright2", TEXTURE_GROUP_OTHER, true);
+	g_materialBones			= LoadMat("debug/debugskeleton", TEXTURE_GROUP_OTHER, true);
+	g_materialLines			= LoadMat("debug/debugwireframevertexcolor", TEXTURE_GROUP_OTHER, true);
+	g_materialFloor			= LoadMat("hlmv/floor", TEXTURE_GROUP_OTHER, true);
+	g_materialVertexColor   = LoadMat("debug/debugvertexcolor", TEXTURE_GROUP_OTHER, true);
+	g_materialShadow		= LoadMat("hlmv/shadow", TEXTURE_GROUP_OTHER, true);
+	g_materialHitbox		= LoadMat("debug/debughitbox", TEXTURE_GROUP_OTHER, true);
+
 	if (!parent)
 		setVisible (true);
 	else
@@ -415,12 +426,6 @@ void DrawBackground()
 		return;
 
 	g_pMaterialSystem->GetRenderContext()->Bind(g_materialBackground);
-	g_pMaterialSystem->GetRenderContext()->MatrixMode(MATERIAL_MODEL);
-	g_pMaterialSystem->GetRenderContext()->PushMatrix();
-	g_pMaterialSystem->GetRenderContext()->LoadIdentity();
-	g_pMaterialSystem->GetRenderContext()->MatrixMode(MATERIAL_VIEW);
-	g_pMaterialSystem->GetRenderContext()->PushMatrix();
-	g_pMaterialSystem->GetRenderContext()->LoadIdentity();
 	{
 		IMesh* pMesh = g_pMaterialSystem->GetRenderContext()->GetDynamicMesh();
 		CMeshBuilder meshBuilder;
@@ -458,26 +463,20 @@ void DrawHelpers()
 {
 	if (g_viewerSettings.mousedown)
 	{
-		g_pMaterialSystem->GetRenderContext()->Bind( g_materialBones );
+		IMesh* pMesh = g_pMaterialSystem->GetRenderContext()->GetDynamicMesh(true, nullptr, nullptr, g_materialVertexColor );
 
-		g_pMaterialSystem->GetRenderContext()->MatrixMode(MATERIAL_MODEL);
-		g_pMaterialSystem->GetRenderContext()->LoadIdentity();
-		g_pMaterialSystem->GetRenderContext()->MatrixMode(MATERIAL_VIEW);
-		g_pMaterialSystem->GetRenderContext()->LoadIdentity();
-
-		IMesh* pMesh = g_pMaterialSystem->GetRenderContext()->GetDynamicMesh();
-
+		const int lineCount = 72;
 		CMeshBuilder meshBuilder;
-		meshBuilder.Begin( pMesh, MATERIAL_LINES, 1 );
+		meshBuilder.Begin( pMesh, MATERIAL_LINES, lineCount );
 
 		if (g_viewerSettings.rotating)
 			meshBuilder.Color3ub( 255, 255, 0 );
 		else
 			meshBuilder.Color3ub(   0, 255, 0 );
 
-		for (int i = 0; i < 360; i += 5)
+		for (int i = 0; i < lineCount; i++ )
 		{
-			float a = i * (3.151492653/180.0f);
+			float a = i / (float)(lineCount) * M_PI * 2;
 
 			if (g_viewerSettings.rotating)
 				meshBuilder.Color3ub( 255, 255, 0 );
@@ -850,14 +849,24 @@ MatSysWindow::draw ()
 
 	g_pMaterialSystem->GetRenderContext()->Viewport( 0, 0, w(), h() );
 
-	g_pMaterialSystem->GetRenderContext()->MatrixMode( MATERIAL_PROJECTION );
-	g_pMaterialSystem->GetRenderContext()->LoadIdentity( );
-	g_pMaterialSystem->GetRenderContext()->PerspectiveX(g_viewerSettings.fov, (float)w() / (float)h(), 1.0f, 20000.0f);
-	
+	// Back Layer
+	g_pMaterialSystem->GetRenderContext()->MatrixMode(MATERIAL_MODEL);
+	g_pMaterialSystem->GetRenderContext()->PushMatrix();
+	g_pMaterialSystem->GetRenderContext()->LoadIdentity();
+	g_pMaterialSystem->GetRenderContext()->MatrixMode(MATERIAL_VIEW);
+	g_pMaterialSystem->GetRenderContext()->PushMatrix();
+	g_pMaterialSystem->GetRenderContext()->LoadIdentity();
 	DrawBackground();
+
+	// 3D Stuff Layer
+	g_pMaterialSystem->GetRenderContext()->MatrixMode( MATERIAL_PROJECTION );
+	g_pMaterialSystem->GetRenderContext()->LoadMatrix( projMatrix );
+	g_pMaterialSystem->GetRenderContext()->MatrixMode( MATERIAL_VIEW );
+	g_pMaterialSystem->GetRenderContext()->LoadMatrix( viewMatrix );
+
 	DrawGroundPlane();
 	DrawMovementBoxes();
-	DrawHelpers();
+
 
 	g_pMaterialSystem->GetRenderContext()->MatrixMode( MATERIAL_VIEW );
 	g_pMaterialSystem->GetRenderContext()->LoadIdentity( );
@@ -901,6 +910,16 @@ MatSysWindow::draw ()
 
 	PlaySounds( g_pStudioModel );
 	UpdateSounds(); // need to call this multiple times per frame to avoid audio stuttering
+
+
+	// Front UI Layer
+	g_pMaterialSystem->GetRenderContext()->MatrixMode(MATERIAL_MODEL);
+	g_pMaterialSystem->GetRenderContext()->PushMatrix();
+	g_pMaterialSystem->GetRenderContext()->LoadIdentity();
+	g_pMaterialSystem->GetRenderContext()->MatrixMode(MATERIAL_VIEW);
+	g_pMaterialSystem->GetRenderContext()->PushMatrix();
+	g_pMaterialSystem->GetRenderContext()->LoadIdentity();
+	DrawHelpers();
 
     g_pMaterialSystem->SwapBuffers();
 	

@@ -776,25 +776,34 @@ void StudioModel::SetupModel ( int bodypart )
 }
 
 
-static IMaterial *g_pAlpha;
-
 
 //-----------------------------------------------------------------------------
 // Draws a box, not wireframed
 //-----------------------------------------------------------------------------
 
-void StudioModel::drawBox (Vector const *v, float const * color )
+void StudioModel::drawBox(Vector const* v, float const* color)
 {
-	IMesh* pMesh = g_pMaterialSystem->GetRenderContext()->GetDynamicMesh( );
+	// Ozxy: For some reason, we have to map these up weirdly
+	//       This is way easier than some magic math or unrolling the loop
+	const static int uv[][2] = {
+		{1, 1},
+		{0, 1},
+		{1, 0},
+		{0, 0},
+	};
+	
+	IMesh* pMesh = g_pMaterialSystem->GetRenderContext()->GetDynamicMesh();
 
 	CMeshBuilder meshBuilder;
+
 
 	// The four sides
 	meshBuilder.Begin( pMesh, MATERIAL_TRIANGLE_STRIP, 2 * 4 );
 	for (int i = 0; i < 10; i++)
 	{
-		meshBuilder.Position3fv (v[i & 7].Base() );
-		meshBuilder.Color4fv( color );
+		meshBuilder.Position3fv(v[i & 7].Base());
+		meshBuilder.Color4fv(color);
+		meshBuilder.TexCoord2f(0, uv[i % 4][0], uv[i % 4][1]);
 		meshBuilder.AdvanceVertex();
 	}
 	meshBuilder.End();
@@ -805,18 +814,22 @@ void StudioModel::drawBox (Vector const *v, float const * color )
 
 	meshBuilder.Position3fv (v[6].Base());
 	meshBuilder.Color4fv( color );
+	meshBuilder.TexCoord2f(0, 1, 1);
 	meshBuilder.AdvanceVertex();
 
 	meshBuilder.Position3fv (v[0].Base());
 	meshBuilder.Color4fv( color );
+	meshBuilder.TexCoord2f(0, 0, 1);
 	meshBuilder.AdvanceVertex();
 
 	meshBuilder.Position3fv (v[4].Base());
 	meshBuilder.Color4fv( color );
+	meshBuilder.TexCoord2f(0, 1, 0);
 	meshBuilder.AdvanceVertex();
 
 	meshBuilder.Position3fv (v[2].Base());
 	meshBuilder.Color4fv( color );
+	meshBuilder.TexCoord2f(0, 0, 0);
 	meshBuilder.AdvanceVertex();
 
 	meshBuilder.End();
@@ -826,18 +839,22 @@ void StudioModel::drawBox (Vector const *v, float const * color )
 
 	meshBuilder.Position3fv (v[1].Base());
 	meshBuilder.Color4fv( color );
+	meshBuilder.TexCoord2f(0, 1, 1);
 	meshBuilder.AdvanceVertex();
 
 	meshBuilder.Position3fv (v[7].Base());
 	meshBuilder.Color4fv( color );
+	meshBuilder.TexCoord2f(0, 0, 1);
 	meshBuilder.AdvanceVertex();
 
 	meshBuilder.Position3fv (v[3].Base());
 	meshBuilder.Color4fv( color );
+	meshBuilder.TexCoord2f(0, 1, 0);
 	meshBuilder.AdvanceVertex();
 
 	meshBuilder.Position3fv (v[5].Base());
 	meshBuilder.Color4fv( color );
+	meshBuilder.TexCoord2f(0, 0, 0);
 	meshBuilder.AdvanceVertex();
 
 	meshBuilder.End();
@@ -1026,7 +1043,7 @@ void StudioModel::drawTransparentBox( Vector const &bbmin, Vector const &bbmax,
 	VectorTransform (v[6], m, v2[6]);
 	VectorTransform (v[7], m, v2[7]);
 	
-	g_pMaterialSystem->GetRenderContext()->Bind( g_pAlpha );
+	g_pMaterialSystem->GetRenderContext()->Bind( g_materialHitbox );
 	drawBox( v2, color );
 
 	g_pMaterialSystem->GetRenderContext()->Bind( g_materialBones );
@@ -1270,10 +1287,7 @@ static float hullcolor[8][4] =
 void StudioModel::DrawHitboxes( )
 {
 	CStudioHdr *pStudioHdr = GetStudioHdr();
-	if (!g_pAlpha)
-	{
-		g_pAlpha = g_pMaterialSystem->FindMaterial("debug/debughitbox", TEXTURE_GROUP_OTHER, false);
-	}
+
 
 	if (g_viewerSettings.showHitBoxes || (g_viewerSettings.highlightHitbox >= 0))
 	{

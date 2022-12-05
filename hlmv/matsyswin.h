@@ -56,6 +56,7 @@ extern IMaterial *g_materialLines;
 extern IMaterial *g_materialFloor;
 extern IMaterial *g_materialVertexColor;
 extern IMaterial *g_materialShadow;
+extern IMaterial *g_materialHitbox;
 
 #if 0
 
