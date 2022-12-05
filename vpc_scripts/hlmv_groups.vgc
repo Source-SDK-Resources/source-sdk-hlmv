@@ -1,0 +1,17 @@
+//-----------------------------------------------------------------------------
+//	HLMV_GROUPS.VGC
+//
+//	Group configurations for HLMV
+//-----------------------------------------------------------------------------
+
+$Group "hlmv"
+{
+	"appframework"
+	"interfaces"
+	"tier0_static"
+	"tier1"
+	"tier2"
+	"mathlib"
+	"vstdlib_static"
+	"hlmv"
+}
