@@ -169,10 +169,10 @@ public:
 	int								SetSkin( int iValue );
 	int								FindBone( const char *pName );
 
-	LocalFlexController_t           LookupFlexController( char *szName );
-	void							SetFlexController( char *szName, float flValue );
+	LocalFlexController_t           LookupFlexController( const char *szName );
+	void							SetFlexController( const char *szName, float flValue );
 	void							SetFlexController( LocalFlexController_t iFlex, float flValue );
-	float							GetFlexController( char *szName );
+	float							GetFlexController( const char *szName );
 	float							GetFlexController( LocalFlexController_t iFlex );
 	void							SetFlexControllerRaw( LocalFlexController_t iFlex, float flValue );
 	float							GetFlexControllerRaw( LocalFlexController_t iFlex );

@@ -710,7 +710,7 @@ void PlaySounds( StudioModel *pStudioModel )
 	for ( int i = 0; i < (int)seqdesc.numevents; ++i )
 	{
 		mstudioevent_t *pEvent = seqdesc.pEvent( i );
-		const char *pEventName = pEvent->pszEventName();
+		//const char *pEventName = pEvent->pszEventName();
 
 		if ( pEvent->cycle <= prevcycle || pEvent->cycle > currcycle )
 			continue;

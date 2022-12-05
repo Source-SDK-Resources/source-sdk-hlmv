@@ -18,7 +18,6 @@
 #include "filesystem.h"
 #include "vphysics/constraints.h"
 #include "phyfile.h"
-#include "physdll.h"
 #include "physmesh.h"
 #include "mathlib.h"
 #include <stddef.h>
@@ -290,7 +289,7 @@ public:
 		}
 		else
 		{
-			printf("Bad key %s!!\n");
+			printf("Bad key %s!!\n", pKey);
 		}
 	}
 	virtual void SetDefaults( void *pCustom )
@@ -547,7 +546,7 @@ char *CStudioPhysics::DumpQC( void )
 			{
 				for ( int j = 0; j < 3; j++ )
 				{
-					char *pAxis[] = { "x", "y", "z" };
+					const char *pAxis[] = { "x", "y", "z" };
 					sprintf( tmpbuf, "\t$jointconstrain %s %s limit %.2f %.2f %.2f\r\n", jointname, pAxis[j], pmesh->m_constraint.axes[j].minRotation, pmesh->m_constraint.axes[j].maxRotation, pmesh->m_constraint.axes[j].torque );
 					out.WriteText( tmpbuf );
 				}

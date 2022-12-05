@@ -585,6 +585,7 @@ void StudioModel::SetUpBones( bool mergeBones )
 			continue;
 		}
 
+		CBoneAccessor boneAccessor( g_pBoneToWorld );
 		if ( override[i] )
 		{
 			continue;
@@ -593,7 +594,7 @@ void StudioModel::SetUpBones( bool mergeBones )
 		{
 			// already calculated
 		}
-		else if (CalcProceduralBone( pStudioHdr, i, CBoneAccessor(g_pBoneToWorld) ))
+		else if (CalcProceduralBone( pStudioHdr, i, boneAccessor ))
 		{
 			continue;
 		}

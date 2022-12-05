@@ -481,7 +481,7 @@ float StudioModel::GetTransitionAmount( void )
 	return 0.0f;
 }
 
-LocalFlexController_t StudioModel::LookupFlexController( char *szName )
+LocalFlexController_t StudioModel::LookupFlexController( const char *szName )
 {
 	CStudioHdr *pStudioHdr = GetStudioHdr();
 	if (!pStudioHdr)
@@ -498,7 +498,7 @@ LocalFlexController_t StudioModel::LookupFlexController( char *szName )
 }
 
 
-void StudioModel::SetFlexController( char *szName, float flValue )
+void StudioModel::SetFlexController( const char *szName, float flValue )
 {
 	SetFlexController( LookupFlexController( szName ), flValue );
 }
@@ -535,7 +535,7 @@ void StudioModel::SetFlexControllerRaw( LocalFlexController_t iFlex, float flVal
 	}
 }
 
-float StudioModel::GetFlexController( char *szName )
+float StudioModel::GetFlexController( const char *szName )
 {
 	return GetFlexController( LookupFlexController( szName ) );
 }

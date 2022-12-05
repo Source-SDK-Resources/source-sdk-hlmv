@@ -35,12 +35,22 @@ mxWindow::mxWindow (mxWindow *parent, int x, int y, int w, int h, const char *la
 	d_this->d_uTimer = 0;
 
 	DWORD dwStyle;
-	if (style == Normal)
-		dwStyle = WS_OVERLAPPEDWINDOW;
-	else if (style == Popup)
+	switch ( style )
+	{
+	case Popup:
 		dwStyle = WS_POPUP;
-	else if (style == Dialog || style == ModalDialog)
+		break;
+	
+	case Dialog:
+	case ModalDialog:
 		dwStyle = WS_CAPTION | WS_SYSMENU;
+		break;
+
+	case Normal:
+	default:
+		dwStyle = WS_OVERLAPPEDWINDOW;
+		break;
+	}
 
 	void *parentHandle = 0;
 	if (parent)

@@ -165,7 +165,7 @@ mxBmpWrite (const char *filename, mxImage *image)
 	mxBitmapRGBQuad rgrgbPalette[256];
 	int cbBmpBits;
 	byte *pbBmpBits;
-	byte *pb, *pbPal = 0;
+	byte *pb;
 	int cbPalBytes;
 	int biTrueWidth;
 
