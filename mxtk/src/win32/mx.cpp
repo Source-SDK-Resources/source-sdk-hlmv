@@ -16,6 +16,7 @@
 #include <mx/mxEvent.h>
 #include <mx/mxLinkedList.h>
 #include <windows.h>
+#include <windowsx.h>
 #include <commctrl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -539,8 +540,8 @@ static LRESULT CALLBACK WndProc (HWND hwnd, UINT uMessage, WPARAM wParam, LPARAM
 				{
 					mxEvent event;
 					event.event = mxEvent::ParentNotify;
-					event.x = (short)LOWORD (lParam);
-					event.y = (short)HIWORD (lParam);
+					event.x = GET_X_LPARAM(lParam);
+					event.y = GET_Y_LPARAM(lParam);
 					event.buttons = 0;
 					event.modifiers = 0;
 
@@ -573,8 +574,8 @@ static LRESULT CALLBACK WndProc (HWND hwnd, UINT uMessage, WPARAM wParam, LPARAM
 		{
 			mxEvent event;
 			event.event = mxEvent::MouseDown;
-			event.x = (short)LOWORD (lParam);
-			event.y = (short)HIWORD (lParam);
+			event.x = GET_X_LPARAM(lParam);
+			event.y = GET_Y_LPARAM(lParam);
 			event.buttons = 0;
 			event.modifiers = 0;
 
@@ -614,8 +615,8 @@ static LRESULT CALLBACK WndProc (HWND hwnd, UINT uMessage, WPARAM wParam, LPARAM
 		{
 			mxEvent event;
 			event.event = mxEvent::MouseUp;
-			event.x = (short) LOWORD (lParam);
-			event.y = (short) HIWORD (lParam);
+			event.x = GET_X_LPARAM(lParam);
+			event.y = GET_Y_LPARAM(lParam);
 			event.buttons = 0;
 			event.modifiers = 0;
 
@@ -660,8 +661,8 @@ static LRESULT CALLBACK WndProc (HWND hwnd, UINT uMessage, WPARAM wParam, LPARAM
 			else
 				event.event = mxEvent::MouseMove;
 
-			event.x = (short) LOWORD (lParam);
-			event.y = (short) HIWORD (lParam);
+			event.x = GET_X_LPARAM(lParam);
+			event.y = GET_Y_LPARAM(lParam);
 			event.buttons = 0;
 			event.modifiers = 0;
 
@@ -694,8 +695,8 @@ static LRESULT CALLBACK WndProc (HWND hwnd, UINT uMessage, WPARAM wParam, LPARAM
 		{
 			mxEvent event;
 			event.event = mxEvent::NCMouseDown;
-			event.x = (short) LOWORD (lParam);
-			event.y = (short) HIWORD (lParam);
+			event.x = GET_X_LPARAM(lParam);
+			event.y = GET_Y_LPARAM(lParam);
 			event.buttons = 0;
 			event.modifiers = 0;
 
@@ -720,8 +721,8 @@ static LRESULT CALLBACK WndProc (HWND hwnd, UINT uMessage, WPARAM wParam, LPARAM
 		{
 			mxEvent event;
 			event.event = mxEvent::NCMouseUp;
-			event.x = (short) LOWORD (lParam);
-			event.y = (short) HIWORD (lParam);
+			event.x = GET_X_LPARAM(lParam);
+			event.y = GET_Y_LPARAM(lParam);
 			event.buttons = 0;
 			event.modifiers = 0;
 
@@ -746,8 +747,8 @@ static LRESULT CALLBACK WndProc (HWND hwnd, UINT uMessage, WPARAM wParam, LPARAM
 
 			event.event = mxEvent::NCMouseMove;
 
-			event.x = (short) LOWORD (lParam);
-			event.y = (short) HIWORD (lParam);
+			event.x = GET_X_LPARAM(lParam);
+			event.y = GET_Y_LPARAM(lParam);
 			event.buttons = 0;
 			event.modifiers = 0;
 
@@ -812,8 +813,9 @@ static LRESULT CALLBACK WndProc (HWND hwnd, UINT uMessage, WPARAM wParam, LPARAM
 			mxEvent event;
 			memset( &event, 0, sizeof( event ) );
 			event.event = mxEvent::MouseWheeled;
-			event.x = (short) LOWORD (lParam);
-			event.y = (short) HIWORD (lParam);
+			event.x = GET_X_LPARAM(lParam);
+			event.y = GET_Y_LPARAM(lParam);
+			event.wheeldelta = GET_WHEEL_DELTA_WPARAM( wParam );
 
 			if (wParam & MK_LBUTTON)
 				event.buttons |= mxEvent::MouseLeftButton;

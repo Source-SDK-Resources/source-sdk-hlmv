@@ -283,6 +283,12 @@ MatSysWindow::handleEvent (mxEvent *event)
 	}
 	break;
 
+	case mxEvent::MouseWheeled:
+	{
+		g_cam.m_orbit.zoom -= event->wheeldelta;
+	}
+	break;
+
 	case mxEvent::MouseUp:
 	{
 		g_viewerSettings.mousedown = false;
@@ -320,17 +326,25 @@ MatSysWindow::handleEvent (mxEvent *event)
 
 	case mxEvent::MouseDrag:
 	{
-		if (event->buttons & mxEvent::MouseLeftButton)
+		auto fnOrbitPanView = [&]() {
+			Vector up, right;
+			AngleVectors(g_cam.m_orbit.angles, nullptr, &right, &up);
+
+
+			g_cam.m_orbit.origin = Vector(oldtx, oldty, oldtz)
+					                - right * (float) (event->x - oldx) / 4.0f
+					                + up    * (float) (event->y - oldy) / 4.0f;
+		};
+		
+		if ( event->buttons & mxEvent::MouseMiddleButton )
+		{
+			fnOrbitPanView();
+		} 
+		else if (event->buttons & mxEvent::MouseLeftButton)
 		{
 			if (event->modifiers & mxEvent::KeyShift)
 			{
-				Vector up, right;
-				AngleVectors(g_cam.m_orbit.angles, nullptr, &right, &up);
-
-
-				g_cam.m_orbit.origin = Vector(oldtx, oldty, oldtz)
-					                  - right * (float) (event->x - oldx) / 4.0f
-					                  + up    * (float) (event->y - oldy) / 4.0f;
+				fnOrbitPanView();
 			}
 			else if (event->modifiers & mxEvent::KeyCtrl)
 			{
