@@ -967,12 +967,6 @@ void StudioModel::drawTransform( matrix3x4_t& m, float flLength )
 	}
 }
 
-void drawLine( Vector const &p1, Vector const &p2, int r, int g, int b, bool noDepthTest, float duration )
-{
-	g_pStudioModel->drawLine( p1, p2, r, g, b );
-}
-
-
 void StudioModel::drawLine( Vector const &p1, Vector const &p2, int r, int g, int b )
 {
 	g_pMaterialSystem->GetRenderContext()->Bind( g_materialLines );
@@ -1743,12 +1737,8 @@ float StudioModel::SetHeadPosition( matrix3x4_t& attToWorld, Vector const &vTarg
 	return flMoved;
 }
 
-
 DrawModelInfo_t g_DrawModelInfo;
 bool g_bDrawModelInfoValid = false;
-
-// Ozxy: Turns out, data from this is needed later. More crimes!
-DrawModelResults_t g_DrawModelResults;
 
 
 /*
@@ -1759,86 +1749,89 @@ inputs:
 	r_entorigin
 ================
 */
-int StudioModel::DrawModel( bool mergeBones )
+void StudioModel::DrawModel( bool mergeBones )
 {
 	MDLCACHE_CRITICAL_SECTION_( g_pMDLCache );
 
 	CStudioHdr *pStudioHdr = GetStudioHdr();
-	if (!pStudioHdr)
-		return 0;
+
+	if ( !pStudioHdr || pStudioHdr->numbodyparts() == 0)
+		return;
 
 	g_smodels_total++; // render data cache cookie
-
-	// JasonM & garymcthack - should really only do this once a frame and at init time.
-	UpdateStudioRenderConfig( g_viewerSettings.renderMode == RM_WIREFRAME, false,
-							  g_viewerSettings.showNormals,
-							  g_viewerSettings.showTangentFrame );
-
-	// NOTE: UpdateStudioRenderConfig can delete the studio hdr
-	pStudioHdr = GetStudioHdr();
-	if ( !pStudioHdr || pStudioHdr->numbodyparts() == 0)
-		return 0;
 
 	// Construct a transform to apply to the model. The camera is stuck in a fixed position
 	AngleMatrix( m_angles, g_viewtransform );
 
-	Vector vecModelOrigin;
-	VectorMultiply( m_origin, -1.0f, vecModelOrigin );
-	MatrixSetColumn( vecModelOrigin, 3, g_viewtransform );
+	MatrixSetColumn(m_origin, 3, g_viewtransform );
 	
+	/*
 	// These values HAVE to be sent down for LOD to work correctly.
 	Vector viewOrigin, viewRight, viewUp, viewPlaneNormal;
 	g_pStudioRender->SetViewState( vec3_origin, Vector(0, 1, 0), Vector(0, 0, 1), Vector( 1, 0, 0 ) );
 
 	//	g_pStudioRender->SetEyeViewTarget( viewOrigin );
-	
-	g_pBoneToWorld = g_pStudioRender->LockBoneMatrices(MAXSTUDIOBONES);
+	*/
 
-	SetUpBones( mergeBones );
-
-	SetViewTarget( );
-
-	SetupLighting( );
+	SetupLighting();
 
 
 	// process flex controllers
 	extern float g_flexdescweight[MAXSTUDIOFLEXDESC]; // garymcthack
 	extern float g_flexdescweight2[MAXSTUDIOFLEXDESC]; // garymcthack
 
-	int i;
-
-	for (i = 0; i < pStudioHdr->numflexdesc(); i++)
+	// Static props don't have flexes
+	if (!(m_pStudioHdr->flags() & STUDIOHDR_FLAGS_STATIC_PROP))
 	{
-		g_flexdescweight[i] = 0.0;
+
+		g_pBoneToWorld = g_pStudioRender->LockBoneMatrices(MAXSTUDIOBONES);
+
+		SetUpBones(mergeBones);
+
+		SetViewTarget();
+
+
+		int i;
+
+		for (i = 0; i < pStudioHdr->numflexdesc(); i++)
+		{
+			g_flexdescweight[i] = 0.0;
+		}
+
+		RunFlexRules();
+
+		float d = 0.8;
+
+		if (m_dt != 0)
+		{
+			d = ExponentialDecay( 0.8, 0.033, m_dt );
+		}
+
+		// Apparently, we have to hand these over to be allocated and then copy into them now.
+		float* pFlexdescweight;
+		float* pFlexdescweight2;
+		g_pStudioRender->LockFlexWeights(MAXSTUDIOFLEXDESC, &pFlexdescweight, &pFlexdescweight2);
+		for (i = 0; i < pStudioHdr->numflexdesc(); i++)
+		{
+			g_flexdescweight2[i] = g_flexdescweight2[i] * d + g_flexdescweight[i] * (1 - d);
+			pFlexdescweight[i] = g_flexdescweight[i];
+			pFlexdescweight2[i] = g_flexdescweight2[i];
+		}
+		g_pStudioRender->UnlockFlexWeights();
+
+		g_pStudioRender->UnlockBoneMatrices();
 	}
-
-	RunFlexRules();
-
-	float d = 0.8;
-
-	if (m_dt != 0)
+	else
 	{
-		d = ExponentialDecay( 0.8, 0.033, m_dt );
+		// View transform used to be for moving the model around the camera, but it turns out, it's quite good at just being a model matrix
+		g_pBoneToWorld = &g_viewtransform;
 	}
-
-	// Apparently, we have to hand these over to be allocated and then copy into them now.
-	float* pFlexdescweight;
-	float* pFlexdescweight2;
-	g_pStudioRender->LockFlexWeights(MAXSTUDIOFLEXDESC, &pFlexdescweight, &pFlexdescweight2);
-	for (i = 0; i < pStudioHdr->numflexdesc(); i++)
-	{
-		g_flexdescweight2[i] = g_flexdescweight2[i] * d + g_flexdescweight[i] * (1 - d);
-		pFlexdescweight[i] = g_flexdescweight[i];
-		pFlexdescweight2[i] = g_flexdescweight2[i];
-	}
-	g_pStudioRender->UnlockFlexWeights();
 
 	
 	// draw
 
 	g_pStudioRender->SetAlphaModulation( 1.0f );
 
-	int count = 0;
 
 	g_bDrawModelInfoValid = true;
 	memset( &g_DrawModelInfo, 0, sizeof( g_DrawModelInfo ) );
@@ -1852,39 +1845,59 @@ int StudioModel::DrawModel( bool mergeBones )
 	g_DrawModelInfo.m_Lod = g_viewerSettings.autoLOD ? -1 : g_viewerSettings.lod;
 	g_DrawModelInfo.m_pColorMeshes = NULL;
 
+	DrawModelResults_t drawModelResults = { 0,0,0,0,0,0,0, {}, CUtlVectorFixed<IMaterial*,MAX_DRAW_MODEL_INFO_MATERIALS>() };
+
 	if( g_viewerSettings.renderMode == RM_BONEWEIGHTS )
 	{
 		g_DrawModelInfo.m_Lod = 0;
-		DebugDrawModelBoneWeights( g_pStudioRender, g_DrawModelInfo, vecModelOrigin, &m_LodUsed, &m_LodMetric );
+		DebugDrawModelBoneWeights( g_pStudioRender, g_DrawModelInfo, m_origin );
 	}
 	else
 	{
+
 		// Draw the model normally (may include normal and/or tangent line segments)
-		g_pStudioRender->DrawModel(&g_DrawModelResults, g_DrawModelInfo, g_pBoneToWorld, g_flexdescweight, g_flexdescweight2, vecModelOrigin);
-		m_LodUsed = g_DrawModelResults.m_nLODUsed;
-		m_LodMetric = g_DrawModelResults.m_flLODMetric;
+		if ( m_pStudioHdr->flags() & STUDIOHDR_FLAGS_STATIC_PROP )
+			g_pStudioRender->DrawModelStaticProp(g_DrawModelInfo, *g_pBoneToWorld);
+		else
+			g_pStudioRender->DrawModel( &drawModelResults, g_DrawModelInfo, g_pBoneToWorld, g_flexdescweight, g_flexdescweight2, m_origin);
+
+		// Get the stats on the draw
+		g_pStudioRender->GetPerfStats( &drawModelResults, g_DrawModelInfo );
 
 		// Optionally overlay wireframe...
 		if ( g_viewerSettings.overlayWireframe && !(g_viewerSettings.renderMode == RM_WIREFRAME) )
 		{
 			// Set the state to trigger wireframe rendering
 			UpdateStudioRenderConfig( true, true, false, false );
-
-			g_pStudioRender->DrawModel( &g_DrawModelResults, g_DrawModelInfo, g_pBoneToWorld, g_flexdescweight, g_flexdescweight2, vecModelOrigin);
-			m_LodUsed = g_DrawModelResults.m_nLODUsed;
-			m_LodMetric = g_DrawModelResults.m_flLODMetric;
+			
+			if ( m_pStudioHdr->flags() & STUDIOHDR_FLAGS_STATIC_PROP )
+				g_pStudioRender->DrawModelStaticProp(g_DrawModelInfo, *g_pBoneToWorld);
+			else
+				g_pStudioRender->DrawModel(nullptr, g_DrawModelInfo, g_pBoneToWorld, g_flexdescweight, g_flexdescweight2, m_origin);
 
 			// Restore the studio render config
 			UpdateStudioRenderConfig( g_viewerSettings.renderMode == RM_WIREFRAME, false,
 										g_viewerSettings.showNormals,
 										g_viewerSettings.showTangentFrame );
 		}
+
 	}
 
+	m_drawMetrics.LodUsed          = drawModelResults.m_nLODUsed;
+	m_drawMetrics.LodMetric        = drawModelResults.m_flLODMetric;
+	m_drawMetrics.PolyCount        = drawModelResults.m_ActualTriCount;
+	m_drawMetrics.NumHardwareBones = drawModelResults.m_NumHardwareBones;
+	m_drawMetrics.NumBatches       = drawModelResults.m_NumBatches;
+	m_drawMetrics.NumMaterials     = drawModelResults.m_NumMaterials;
 
-	DrawBones();
-	DrawAttachments();
-	DrawEditAttachment();
+	// Static props don't have these
+	if (!(m_pStudioHdr->flags() & STUDIOHDR_FLAGS_STATIC_PROP))
+	{
+		DrawBones();
+		DrawAttachments();
+		DrawEditAttachment();
+	}
+
 	DrawHitboxes();
 	DrawPhysicsModel();
 	DrawIllumPosition();
@@ -1919,7 +1932,7 @@ int StudioModel::DrawModel( bool mergeBones )
 		UpdateStudioRenderConfig( false, false, false, false );
 
 		DrawModelResults_t results;
-		g_pStudioRender->DrawModel( &results, g_DrawModelInfo, g_pBoneToWorld, g_flexdescweight, g_flexdescweight2, vecModelOrigin);
+		g_pStudioRender->DrawModel( &results, g_DrawModelInfo, g_pBoneToWorld, g_flexdescweight, g_flexdescweight2, m_origin );
 
 		g_pStudioRender->UnlockBoneMatrices();
 
@@ -1933,7 +1946,6 @@ int StudioModel::DrawModel( bool mergeBones )
 		g_pStudioRender->SetColorModulation( one );
 	}
 
-	return count;
 }
 
 
@@ -2109,16 +2121,6 @@ void StudioModel::Rotate( Vector const &in1, mstudioboneweight_t const *pbonewei
 ================
 */
 
-
-int StudioModel::GetLodUsed( void )
-{
-	return m_LodUsed;
-}
-
-float StudioModel::GetLodMetric( void )
-{
-	return m_LodMetric;
-}
 
 
 const char *StudioModel::GetKeyValueText( int iSequence )

@@ -17,8 +17,7 @@ extern matrix3x4_t* g_pBoneToWorld;
 #define NORMAL_LENGTH .5f
 #define NORMAL_OFFSET_FROM_MESH 0.1f
 
-int DebugDrawModel( IStudioRender *pStudioRender, DrawModelInfo_t& info, const Vector &modelOrigin,
-			        int *pLodUsed, float *pMetric, int flags )
+int DebugDrawModel( IStudioRender *pStudioRender, DrawModelInfo_t& info, const Vector &modelOrigin, int flags )
 {
 	// Make static so that we aren't reallocating everything all the time.
 	// TODO: make sure that this actually keeps us from reallocating inside of GetTriangles.
@@ -91,8 +90,7 @@ int DebugDrawModel( IStudioRender *pStudioRender, DrawModelInfo_t& info, const V
 	return 0;
 }
 
-int DebugDrawModelNormals( IStudioRender *pStudioRender, DrawModelInfo_t& info, const Vector &modelOrigin,
-			        int *pLodUsed, float *pMetric, int flags )
+int DebugDrawModelNormals( IStudioRender *pStudioRender, DrawModelInfo_t& info, const Vector &modelOrigin, int flags )
 {
 	// Make static so that we aren't reallocating everything all the time.
 	// TODO: make sure that this actually keeps us from reallocating inside of GetTriangles.
@@ -156,8 +154,7 @@ int DebugDrawModelNormals( IStudioRender *pStudioRender, DrawModelInfo_t& info, 
 	return 0;
 }
 
-int DebugDrawModelTangentS( IStudioRender *pStudioRender, DrawModelInfo_t& info, const Vector &modelOrigin,
-			        int *pLodUsed, float *pMetric, int flags )
+int DebugDrawModelTangentS( IStudioRender *pStudioRender, DrawModelInfo_t& info, const Vector &modelOrigin, int flags )
 {
 	// Make static so that we aren't reallocating everything all the time.
 	// TODO: make sure that this actually keeps us from reallocating inside of GetTriangles.
@@ -225,8 +222,7 @@ int DebugDrawModelTangentS( IStudioRender *pStudioRender, DrawModelInfo_t& info,
 	return 0;
 }
 
-int DebugDrawModelTangentT( IStudioRender *pStudioRender, DrawModelInfo_t& info, const Vector &modelOrigin,
-			        int *pLodUsed, float *pMetric, int flags )
+int DebugDrawModelTangentT( IStudioRender *pStudioRender, DrawModelInfo_t& info, const Vector &modelOrigin, int flags )
 {
 	// Make static so that we aren't reallocating everything all the time.
 	// TODO: make sure that this actually keeps us from reallocating inside of GetTriangles.
@@ -296,8 +292,7 @@ int DebugDrawModelTangentT( IStudioRender *pStudioRender, DrawModelInfo_t& info,
 	return 0;
 }
 
-int DebugDrawModelBoneWeights( IStudioRender *pStudioRender, DrawModelInfo_t& info, const Vector &modelOrigin,
-			        int *pLodUsed, float *pMetric, int flags )
+int DebugDrawModelBoneWeights( IStudioRender *pStudioRender, DrawModelInfo_t& info, const Vector &modelOrigin, int flags )
 {
 	// Make static so that we aren't reallocating everything all the time.
 	// TODO: make sure that this actually keeps us from reallocating inside of GetTriangles.

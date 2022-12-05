@@ -3153,7 +3153,6 @@ ControlPanel::initSkinChoices()
 }
 
 
-extern DrawModelResults_t g_DrawModelResults;
 void
 ControlPanel::setModelInfo()
 {
@@ -3163,17 +3162,19 @@ ControlPanel::setModelInfo()
 	if (!hdr)
 		return;
 
+	const auto& metrics = g_pStudioModel->GetDrawMetrics();
+
 	static int checkSum = 0;
 	static int boneLODCount = 0;
 	static int numBatches = 0;
-	if( checkSum == hdr->GetRenderHdr()->checksum && boneLODCount == g_DrawModelResults.m_NumHardwareBones && numBatches == g_DrawModelResults.m_NumBatches)
+	if( checkSum == hdr->GetRenderHdr()->checksum && boneLODCount == metrics.NumHardwareBones && numBatches == metrics.NumBatches)
 	{
 		return;
 	}
 
 	checkSum = hdr->GetRenderHdr()->checksum;
-	boneLODCount = g_DrawModelResults.m_NumHardwareBones;
-	numBatches = g_DrawModelResults.m_NumBatches;
+	boneLODCount = metrics.NumHardwareBones;
+	numBatches = metrics.NumBatches;
 
 	int hbcount = 0;
 	for ( int s = 0; s < hdr->numhitboxsets(); s++ )
@@ -3204,7 +3205,7 @@ ControlPanel::setModelInfo()
 		"Skin Families: %d\n"
 		"Bodyparts: %d\n"
 		"Attachments: %d\n",
-		g_DrawModelResults.m_NumMaterials,
+		metrics.NumMaterials,
 		hdr->numskinfamilies(),
 		hdr->numbodyparts(),
 		hdr->GetNumAttachments());

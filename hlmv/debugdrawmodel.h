@@ -10,15 +10,10 @@
 #pragma once
 #endif
 
-int DebugDrawModel( IStudioRender *pStudioRender, DrawModelInfo_t& info, const Vector &modelOrigin,
-			        int *pLodUsed, float *pMetric, int flags = STUDIORENDER_DRAW_ENTIRE_MODEL );
-int DebugDrawModelNormals( IStudioRender *pStudioRender, DrawModelInfo_t& info, const Vector &modelOrigin,
-			        int *pLodUsed, float *pMetric, int flags = STUDIORENDER_DRAW_ENTIRE_MODEL );
-int DebugDrawModelTangentS( IStudioRender *pStudioRender, DrawModelInfo_t& info, const Vector &modelOrigin,
-			        int *pLodUsed, float *pMetric, int flags = STUDIORENDER_DRAW_ENTIRE_MODEL );
-int DebugDrawModelTangentT( IStudioRender *pStudioRender, DrawModelInfo_t& info, const Vector &modelOrigin,
-			        int *pLodUsed, float *pMetric, int flags = STUDIORENDER_DRAW_ENTIRE_MODEL );
-int DebugDrawModelBoneWeights( IStudioRender *pStudioRender, DrawModelInfo_t& info, const Vector &modelOrigin,
-			        int *pLodUsed, float *pMetric, int flags = STUDIORENDER_DRAW_ENTIRE_MODEL  );
+int DebugDrawModel(            IStudioRender *pStudioRender, DrawModelInfo_t& info, const Vector &modelOrigin, int flags = STUDIORENDER_DRAW_ENTIRE_MODEL );
+int DebugDrawModelNormals(     IStudioRender *pStudioRender, DrawModelInfo_t& info, const Vector &modelOrigin, int flags = STUDIORENDER_DRAW_ENTIRE_MODEL );
+int DebugDrawModelTangentS(    IStudioRender *pStudioRender, DrawModelInfo_t& info, const Vector &modelOrigin, int flags = STUDIORENDER_DRAW_ENTIRE_MODEL );
+int DebugDrawModelTangentT(    IStudioRender *pStudioRender, DrawModelInfo_t& info, const Vector &modelOrigin, int flags = STUDIORENDER_DRAW_ENTIRE_MODEL );
+int DebugDrawModelBoneWeights( IStudioRender *pStudioRender, DrawModelInfo_t& info, const Vector &modelOrigin, int flags = STUDIORENDER_DRAW_ENTIRE_MODEL );
 
 #endif // DEBUGDRAWMODEL_H

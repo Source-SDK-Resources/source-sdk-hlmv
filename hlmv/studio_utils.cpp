@@ -142,6 +142,8 @@ bool StudioModel::LoadModel( const char *pModelName )
 	if (!pModelName)
 		return 0;
 
+	m_drawMetrics = DrawMetrics();
+
 	// In the case of restore, m_pModelName == modelname
 	if (m_pModelName != pModelName)
 	{
@@ -583,11 +585,18 @@ int StudioModel::GetNumLODs() const
 
 float StudioModel::GetLODSwitchValue( int lod ) const
 {
+	int numLODs = GetNumLODs();
+	Assert( numLODs >= 0 );
+
 	return g_pStudioRender->GetLODSwitchValue( *GetHardwareData(), lod );
 }
 
 void StudioModel::SetLODSwitchValue( int lod, float switchValue )
 {
+	int numLODs = GetNumLODs();
+	Assert( numLODs >= 0 );
+
+
 	g_pStudioRender->SetLODSwitchValue( *GetHardwareData(), lod, switchValue );
 }
 

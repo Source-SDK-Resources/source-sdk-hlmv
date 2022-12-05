@@ -85,6 +85,7 @@ public:
 											 const Vector& viewUp,
 											 const Vector& viewPlaneNormal );
 
+
 	static void						ReleaseStudioModel( void );
 	static void						RestoreStudioModel( void );
 
@@ -92,7 +93,7 @@ public:
 
 	char const						*GetFileName( void );
 
-	IStudioRender				    *GetStudioRender();
+	static IStudioRender			*GetStudioRender();
 
 	static void UpdateStudioRenderConfig( bool bWireframe, bool bZBufferWireframe, bool bNormals, bool bTangentFrame );
 	studiohdr_t						*getAnimHeader (int i) const;
@@ -106,7 +107,7 @@ public:
 	virtual bool					PostLoadModel ( const char *modelname );
 	bool							HasModel();
 
-	virtual int						DrawModel( bool mergeBones = false );
+	virtual void					DrawModel( bool mergeBones = false );
 
 	virtual void					AdvanceFrame( float dt );
 	float							GetInterval( void );
@@ -315,9 +316,6 @@ public:
 	virtual int						BoneMask( void );
 	virtual void					SetUpBones( bool mergeBones );
 
-	int								GetLodUsed( void );
-	float							GetLodMetric( void );
-
 	const char						*GetKeyValueText( int iSequence );
 
 private:
@@ -331,15 +329,27 @@ private:
 
 public:
 	// generic interface to rendering?
-	void drawBox (Vector const *v, float const * color );
-	void drawWireframeBox (Vector const *v, float const* color );
-	void drawTransform( matrix3x4_t& m, float flLength = 4 );
-	void drawLine( Vector const &p1, Vector const &p2, int r = 0, int g = 0, int b = 255 );
-	void drawTransparentBox( Vector const &bbmin, Vector const &bbmax, const matrix3x4_t& m, float const *color, float const *wirecolor );
+	static void drawBox (Vector const *v, float const * color );
+	static void drawWireframeBox (Vector const *v, float const* color );
+	static void drawTransform( matrix3x4_t& m, float flLength = 4 );
+	static void drawLine( Vector const &p1, Vector const &p2, int r = 0, int g = 0, int b = 255 );
+	static void drawTransparentBox( Vector const &bbmin, Vector const &bbmax, const matrix3x4_t& m, float const *color, float const *wirecolor );
+
+
 
 private:
-	int						m_LodUsed;
-	float					m_LodMetric;
+	struct DrawMetrics {
+		// Maybe turn this into a DrawModelResults_t at a later date?
+		int LodUsed   = 0;
+		int LodMetric = 0;
+		int PolyCount = 0;
+		int NumHardwareBones = 0;
+		int NumBatches   = 0;
+		int NumMaterials = 0;
+	} m_drawMetrics;
+public:
+	const DrawMetrics& GetDrawMetrics() { return m_drawMetrics; }
+
 
 public:
 

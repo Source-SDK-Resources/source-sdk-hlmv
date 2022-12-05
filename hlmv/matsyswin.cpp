@@ -845,7 +845,8 @@ MatSysWindow::draw ()
 	DrawMovementBoxes();
 
 
-	int polycount = g_pStudioModel->DrawModel ();
+	g_pStudioModel->DrawModel();
+	int polycount = g_pStudioModel->GetDrawMetrics().PolyCount;
 
 	g_pStudioModel->GetStudioRender()->EndFrame();
 
@@ -853,10 +854,8 @@ MatSysWindow::draw ()
 
 	g_ControlPanel->setModelInfo();
 
-	int lod;
-	float metric;
-	metric = g_pStudioModel->GetLodMetric();
-	lod = g_pStudioModel->GetLodUsed();
+	int lod = g_pStudioModel->GetDrawMetrics().LodUsed;
+	float metric = g_pStudioModel->GetDrawMetrics().LodMetric;
 	g_ControlPanel->setLOD( lod, true, false );
 	g_ControlPanel->setLODMetric( metric );
 
