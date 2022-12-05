@@ -431,9 +431,11 @@ void DrawBackground()
 	if (!g_viewerSettings.showBackground)
 		return;
 
-	g_pMaterialSystem->GetRenderContext()->Bind(g_materialBackground);
+	CMatRenderContextPtr ctx( g_pMaterialSystem );
+
+	ctx->Bind(g_materialBackground);
 	{
-		IMesh* pMesh = g_pMaterialSystem->GetRenderContext()->GetDynamicMesh();
+		IMesh* pMesh = ctx->GetDynamicMesh();
 		CMeshBuilder meshBuilder;
 		meshBuilder.Begin( pMesh, MATERIAL_QUADS, 1 );
 
@@ -503,7 +505,8 @@ void DrawGroundPlane()
 	if (!g_viewerSettings.showGround)
 		return;
 
-	g_pMaterialSystem->GetRenderContext()->Bind(g_materialFloor);
+	CMatRenderContextPtr ctx( g_pMaterialSystem );
+	ctx->Bind(g_materialFloor);
 
 	static Vector tMap( 0, 0, 0 );
 	static Vector dxMap( 1, 0, 0 );
@@ -514,7 +517,7 @@ void DrawGroundPlane()
 
 	g_pStudioModel->GetMovement( g_pStudioModel->m_prevGroundCycles, deltaPos, deltaAngles );
 
-	IMesh* pMesh = g_pMaterialSystem->GetRenderContext()->GetDynamicMesh();
+	IMesh* pMesh = ctx->GetDynamicMesh();
 	CMeshBuilder meshBuilder;
 	meshBuilder.Begin( pMesh, MATERIAL_QUADS, 1 );
 
@@ -591,7 +594,8 @@ void DrawMovementBoxes()
 	if (!g_viewerSettings.showMovement)
 		return;
 
-	g_pMaterialSystem->GetRenderContext()->Bind(g_materialFloor);
+	CMatRenderContextPtr ctx( g_pMaterialSystem );
+	ctx->Bind(g_materialFloor);
 
 	static matrix3x4_t mStart( 1, 0, 0, 0 ,  0, 1, 0, 0 ,  0, 0, 1, 0 );
 	matrix3x4_t mTemp;
@@ -815,26 +819,27 @@ MatSysWindow::draw ()
 	g_pMaterialSystem->BeginFrame(0);
 	g_pStudioModel->GetStudioRender()->BeginFrame();
 
-	g_pMaterialSystem->GetRenderContext()->ClearColor3ub(g_viewerSettings.bgColor[0] * 255, g_viewerSettings.bgColor[1] * 255, g_viewerSettings.bgColor[2] * 255);
+	CMatRenderContextPtr ctx( g_pMaterialSystem );
+	ctx->ClearColor3ub(g_viewerSettings.bgColor[0] * 255, g_viewerSettings.bgColor[1] * 255, g_viewerSettings.bgColor[2] * 255);
 	// g_pMaterialSystem->ClearColor3ub(0, 0, 0 );
 	g_pMaterialSystem->ClearBuffers(true, true);
 
-	g_pMaterialSystem->GetRenderContext()->Viewport( 0, 0, w(), h() );
+	ctx->Viewport( 0, 0, w(), h() );
 
 	// Back Layer
-	g_pMaterialSystem->GetRenderContext()->MatrixMode(MATERIAL_MODEL);
-	g_pMaterialSystem->GetRenderContext()->PushMatrix();
-	g_pMaterialSystem->GetRenderContext()->LoadIdentity();
-	g_pMaterialSystem->GetRenderContext()->MatrixMode(MATERIAL_VIEW);
-	g_pMaterialSystem->GetRenderContext()->PushMatrix();
-	g_pMaterialSystem->GetRenderContext()->LoadIdentity();
+	ctx->MatrixMode(MATERIAL_MODEL);
+	ctx->PushMatrix();
+	ctx->LoadIdentity();
+	ctx->MatrixMode(MATERIAL_VIEW);
+	ctx->PushMatrix();
+	ctx->LoadIdentity();
 	DrawBackground();
 
 	// 3D Stuff Layer
-	g_pMaterialSystem->GetRenderContext()->MatrixMode( MATERIAL_PROJECTION );
-	g_pMaterialSystem->GetRenderContext()->LoadMatrix( projMatrix );
-	g_pMaterialSystem->GetRenderContext()->MatrixMode( MATERIAL_VIEW );
-	g_pMaterialSystem->GetRenderContext()->LoadMatrix( viewMatrix );
+	ctx->MatrixMode( MATERIAL_PROJECTION );
+	ctx->LoadMatrix( projMatrix );
+	ctx->MatrixMode( MATERIAL_VIEW );
+	ctx->LoadMatrix( viewMatrix );
 
 	DrawGroundPlane();
 	DrawMovementBoxes();
@@ -879,12 +884,12 @@ MatSysWindow::draw ()
 
 
 	// Front UI Layer
-	g_pMaterialSystem->GetRenderContext()->MatrixMode(MATERIAL_MODEL);
-	g_pMaterialSystem->GetRenderContext()->PushMatrix();
-	g_pMaterialSystem->GetRenderContext()->LoadIdentity();
-	g_pMaterialSystem->GetRenderContext()->MatrixMode(MATERIAL_VIEW);
-	g_pMaterialSystem->GetRenderContext()->PushMatrix();
-	g_pMaterialSystem->GetRenderContext()->LoadIdentity();
+	ctx->MatrixMode(MATERIAL_MODEL);
+	ctx->PushMatrix();
+	ctx->LoadIdentity();
+	ctx->MatrixMode(MATERIAL_VIEW);
+	ctx->PushMatrix();
+	ctx->LoadIdentity();
 	DrawHelpers();
 
     g_pMaterialSystem->SwapBuffers();

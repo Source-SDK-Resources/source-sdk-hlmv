@@ -26,9 +26,11 @@ int DebugDrawModel( IStudioRender *pStudioRender, DrawModelInfo_t& info, const V
 
 	pStudioRender->GetTriangles( info, g_pBoneToWorld, tris );
 
-	g_pMaterialSystem->GetRenderContext()->MatrixMode( MATERIAL_MODEL );
-	g_pMaterialSystem->GetRenderContext()->PushMatrix();
-	g_pMaterialSystem->GetRenderContext()->LoadIdentity();
+	CMatRenderContextPtr ctx( g_pMaterialSystem );
+
+	ctx->MatrixMode( MATERIAL_MODEL );
+	ctx->PushMatrix();
+	ctx->LoadIdentity();
 
 	CMeshBuilder meshBuilder;
 
@@ -37,8 +39,8 @@ int DebugDrawModel( IStudioRender *pStudioRender, DrawModelInfo_t& info, const V
 	{
 		GetTriangles_MaterialBatch_t &materialBatch = tris.m_MaterialBatches[batchID];
 
-		g_pMaterialSystem->GetRenderContext()->Bind( materialBatch.m_pMaterial );
-		IMesh *pBuildMesh = g_pMaterialSystem->GetRenderContext()->GetDynamicMesh( false );
+		ctx->Bind( materialBatch.m_pMaterial );
+		IMesh *pBuildMesh = ctx->GetDynamicMesh( false );
 		meshBuilder.Begin( pBuildMesh, MATERIAL_TRIANGLES, materialBatch.m_Verts.Count(), 
 			materialBatch.m_TriListIndices.Count() );
 
@@ -83,8 +85,8 @@ int DebugDrawModel( IStudioRender *pStudioRender, DrawModelInfo_t& info, const V
 		meshBuilder.End();
 		pBuildMesh->Draw();
 	}
-	g_pMaterialSystem->GetRenderContext()->MatrixMode( MATERIAL_MODEL );
-	g_pMaterialSystem->GetRenderContext()->PopMatrix();
+	ctx->MatrixMode( MATERIAL_MODEL );
+	ctx->PopMatrix();
 
 	return 0;
 }
@@ -98,9 +100,11 @@ int DebugDrawModelNormals( IStudioRender *pStudioRender, DrawModelInfo_t& info, 
 
 	pStudioRender->GetTriangles( info, g_pBoneToWorld, tris );
 
-	g_pMaterialSystem->GetRenderContext()->MatrixMode( MATERIAL_MODEL );
-	g_pMaterialSystem->GetRenderContext()->PushMatrix();
-	g_pMaterialSystem->GetRenderContext()->LoadIdentity();
+	CMatRenderContextPtr ctx( g_pMaterialSystem );
+
+	ctx->MatrixMode( MATERIAL_MODEL );
+	ctx->PushMatrix();
+	ctx->LoadIdentity();
 
 	int batchID;
 	for( batchID = 0; batchID < tris.m_MaterialBatches.Count(); batchID++ )
@@ -108,8 +112,8 @@ int DebugDrawModelNormals( IStudioRender *pStudioRender, DrawModelInfo_t& info, 
 		GetTriangles_MaterialBatch_t &materialBatch = tris.m_MaterialBatches[batchID];
 
 		CMeshBuilder meshBuilder;
-		g_pMaterialSystem->GetRenderContext()->Bind( g_materialVertexColor );
-		IMesh *pBuildMesh = g_pMaterialSystem->GetRenderContext()->GetDynamicMesh();
+		ctx->Bind( g_materialVertexColor );
+		IMesh *pBuildMesh = ctx->GetDynamicMesh();
 		meshBuilder.Begin( pBuildMesh, MATERIAL_LINES, materialBatch.m_Verts.Count() );
 
 		int vertID;
@@ -146,8 +150,8 @@ int DebugDrawModelNormals( IStudioRender *pStudioRender, DrawModelInfo_t& info, 
 		meshBuilder.End();
 		pBuildMesh->Draw();
 	}
-	g_pMaterialSystem->GetRenderContext()->MatrixMode( MATERIAL_MODEL );
-	g_pMaterialSystem->GetRenderContext()->PopMatrix();
+	ctx->MatrixMode( MATERIAL_MODEL );
+	ctx->PopMatrix();
 
 	return 0;
 }
@@ -161,9 +165,11 @@ int DebugDrawModelTangentS( IStudioRender *pStudioRender, DrawModelInfo_t& info,
 
 	pStudioRender->GetTriangles( info, g_pBoneToWorld, tris );
 
-	g_pMaterialSystem->GetRenderContext()->MatrixMode( MATERIAL_MODEL );
-	g_pMaterialSystem->GetRenderContext()->PushMatrix();
-	g_pMaterialSystem->GetRenderContext()->LoadIdentity();
+	CMatRenderContextPtr ctx( g_pMaterialSystem );
+
+	ctx->MatrixMode( MATERIAL_MODEL );
+	ctx->PushMatrix();
+	ctx->LoadIdentity();
 
 	int batchID;
 	for( batchID = 0; batchID < tris.m_MaterialBatches.Count(); batchID++ )
@@ -171,8 +177,8 @@ int DebugDrawModelTangentS( IStudioRender *pStudioRender, DrawModelInfo_t& info,
 		GetTriangles_MaterialBatch_t &materialBatch = tris.m_MaterialBatches[batchID];
 
 		CMeshBuilder meshBuilder;
-		g_pMaterialSystem->GetRenderContext()->Bind( g_materialVertexColor );
-		IMesh *pBuildMesh = g_pMaterialSystem->GetRenderContext()->GetDynamicMesh();
+		ctx->Bind( g_materialVertexColor );
+		IMesh *pBuildMesh = ctx->GetDynamicMesh();
 		meshBuilder.Begin( pBuildMesh, MATERIAL_LINES, materialBatch.m_Verts.Count() );
 
 		int vertID;
@@ -213,8 +219,8 @@ int DebugDrawModelTangentS( IStudioRender *pStudioRender, DrawModelInfo_t& info,
 		meshBuilder.End();
 		pBuildMesh->Draw();
 	}
-	g_pMaterialSystem->GetRenderContext()->MatrixMode( MATERIAL_MODEL );
-	g_pMaterialSystem->GetRenderContext()->PopMatrix();
+	ctx->MatrixMode( MATERIAL_MODEL );
+	ctx->PopMatrix();
 
 	return 0;
 }
@@ -228,9 +234,11 @@ int DebugDrawModelTangentT( IStudioRender *pStudioRender, DrawModelInfo_t& info,
 
 	pStudioRender->GetTriangles( info, g_pBoneToWorld, tris );
 
-	g_pMaterialSystem->GetRenderContext()->MatrixMode( MATERIAL_MODEL );
-	g_pMaterialSystem->GetRenderContext()->PushMatrix();
-	g_pMaterialSystem->GetRenderContext()->LoadIdentity();
+	CMatRenderContextPtr ctx( g_pMaterialSystem );
+
+	ctx->MatrixMode( MATERIAL_MODEL );
+	ctx->PushMatrix();
+	ctx->LoadIdentity();
 
 	int batchID;
 	for( batchID = 0; batchID < tris.m_MaterialBatches.Count(); batchID++ )
@@ -238,8 +246,8 @@ int DebugDrawModelTangentT( IStudioRender *pStudioRender, DrawModelInfo_t& info,
 		GetTriangles_MaterialBatch_t &materialBatch = tris.m_MaterialBatches[batchID];
 
 		CMeshBuilder meshBuilder;
-		g_pMaterialSystem->GetRenderContext()->Bind( g_materialVertexColor );
-		IMesh *pBuildMesh = g_pMaterialSystem->GetRenderContext()->GetDynamicMesh();
+		ctx->Bind( g_materialVertexColor );
+		IMesh *pBuildMesh = ctx->GetDynamicMesh();
 		meshBuilder.Begin( pBuildMesh, MATERIAL_LINES, materialBatch.m_Verts.Count() );
 
 		int vertID;
@@ -282,8 +290,8 @@ int DebugDrawModelTangentT( IStudioRender *pStudioRender, DrawModelInfo_t& info,
 		meshBuilder.End();
 		pBuildMesh->Draw();
 	}
-	g_pMaterialSystem->GetRenderContext()->MatrixMode( MATERIAL_MODEL );
-	g_pMaterialSystem->GetRenderContext()->PopMatrix();
+	ctx->MatrixMode( MATERIAL_MODEL );
+	ctx->PopMatrix();
 
 	return 0;
 }
@@ -297,9 +305,11 @@ int DebugDrawModelBoneWeights( IStudioRender *pStudioRender, DrawModelInfo_t& in
 
 	pStudioRender->GetTriangles( info, g_pBoneToWorld, tris );
 
-	g_pMaterialSystem->GetRenderContext()->MatrixMode( MATERIAL_MODEL );
-	g_pMaterialSystem->GetRenderContext()->PushMatrix();
-	g_pMaterialSystem->GetRenderContext()->LoadIdentity();
+	CMatRenderContextPtr ctx( g_pMaterialSystem );
+
+	ctx->MatrixMode( MATERIAL_MODEL );
+	ctx->PushMatrix();
+	ctx->LoadIdentity();
 
 	CMeshBuilder meshBuilder;
 
@@ -308,8 +318,8 @@ int DebugDrawModelBoneWeights( IStudioRender *pStudioRender, DrawModelInfo_t& in
 	{
 		GetTriangles_MaterialBatch_t &materialBatch = tris.m_MaterialBatches[batchID];
 
-		g_pMaterialSystem->GetRenderContext()->Bind( g_materialVertexColor );
-		IMesh *pBuildMesh = g_pMaterialSystem->GetRenderContext()->GetDynamicMesh( false );
+		ctx->Bind( g_materialVertexColor );
+		IMesh *pBuildMesh = ctx->GetDynamicMesh( false );
 		meshBuilder.Begin( pBuildMesh, MATERIAL_TRIANGLES, materialBatch.m_Verts.Count(), 
 			materialBatch.m_TriListIndices.Count() );
 
@@ -389,8 +399,8 @@ int DebugDrawModelBoneWeights( IStudioRender *pStudioRender, DrawModelInfo_t& in
 		meshBuilder.End();
 		pBuildMesh->Draw();
 	}
-	g_pMaterialSystem->GetRenderContext()->MatrixMode( MATERIAL_MODEL );
-	g_pMaterialSystem->GetRenderContext()->PopMatrix();
+	ctx->MatrixMode( MATERIAL_MODEL );
+	ctx->PopMatrix();
 
 	return 0;
 }
